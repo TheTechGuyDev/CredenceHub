@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Register - CredenceHub{% endblock %}
+
+{% block body %}
+<div style="min-height:100vh; display:flex; background:var(--bg-primary);" data-theme="light">
+
+  <!-- Left Panel -->
+  <div style="flex:1; background:var(--navy); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 40px; position:relative; overflow:hidden;">
+    <div style="position:absolute; top:-100px; left:-100px; width:400px; height:400px; background:rgba(245,166,35,0.05); border-radius:50%;"></div>
+    <div style="position:absolute; bottom:-80px; right:-80px; width:300px; height:300px; background:rgba(245,166,35,0.08); border-radius:50%;"></div>
+
+    <div style="position:relative; z-index:1; text-align:center; max-width:400px;">
+      <div style="width:64px; height:64px; background:var(--gold); border-radius:16px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:24px; color:var(--navy); margin:0 auto 24px;">CH</div>
+      <h1 style="font-size:32px; font-weight:800; color:#ffffff; margin-bottom:12px;">Join CredenceHub</h1>
+      <p style="font-size:16px; color:rgba(255,255,255,0.7); line-height:1.6; margin-bottom:40px;">
+        Start analyzing deals and calculating construction costs for free.
+      </p>
+
+      <div style="background:rgba(245,166,35,0.1); border:1px solid rgba(245,166,35,0.3); border-radius:12px; padding:20px; text-align:left;">
+        <p style="font-size:13px; font-weight:700; color:var(--gold); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">Free Plan Includes</p>
+        {% for item in ['Deal Analysis Tools', 'Wholesale Calculator', 'Fix & Flip Calculator', 'BRRRR Calculator', 'Save up to 5 deals'] %}
+        <div style="display:flex; align-items:center; gap:8px; color:rgba(255,255,255,0.8); font-size:13px; margin-bottom:8px;">
+          <i data-lucide="check" style="width:14px; height:14px; color:var(--gold); flex-shrink:0;"></i>
+          {{ item }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div style="width:500px; display:flex; align-items:center; justify-content:center; padding:40px; background:var(--bg-secondary); overflow-y:auto;">
+    <div style="width:100%; max-width:400px;">
+
+      <h2 style="font-size:26px; font-weight:800; color:var(--text-primary); margin-bottom:6px;">Create your account</h2>
+      <p style="font-size:14px; color:var(--text-muted); margin-bottom:32px;">Free forever. No credit card required.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.register') }}">
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">First Name</label>
+            <input type="text" name="first_name" class="form-control"
+                   placeholder="John" style="background:var(--bg-primary);" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name</label>
+            <input type="text" name="last_name" class="form-control"
+                   placeholder="Smith" style="background:var(--bg-primary);" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" name="email" class="form-control"
+                 placeholder="you@example.com" required
+                 style="background:var(--bg-primary);" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" name="password" class="form-control"
+                 placeholder="Min. 8 characters" required
+                 style="background:var(--bg-primary);" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Confirm Password</label>
+          <input type="password" name="confirm_password" class="form-control"
+                 placeholder="Repeat your password" required
+                 style="background:var(--bg-primary);" />
+        </div>
+
+        <div style="margin-bottom:24px;">
+          <p style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+            By creating an account you agree to our
+            <a href="{{ url_for('main.terms') }}" style="color:var(--navy);">Terms of Service</a>
+            and
+            <a href="{{ url_for('main.privacy') }}" style="color:var(--navy);">Privacy Policy</a>.
+          </p>
+        </div>
+
+        <button type="submit" class="btn btn-primary"
+                style="width:100%; justify-content:center; padding:12px;">
+          Create Free Account
+        </button>
+
+      </form>
+
+      <div style="text-align:center; margin-top:24px;">
+        <p style="font-size:14px; color:var(--text-muted);">
+          Already have an account?
+          <a href="{{ url_for('auth.login') }}"
+             style="color:var(--navy); font-weight:600;">Sign in</a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

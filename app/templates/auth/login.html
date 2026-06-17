@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Login - CredenceHub{% endblock %}
+
+{% block body %}
+<div style="min-height:100vh; display:flex; background:var(--bg-primary);" data-theme="light">
+
+  <!-- Left Panel -->
+  <div style="flex:1; background:var(--navy); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 40px; position:relative; overflow:hidden;">
+
+    <!-- Background decoration -->
+    <div style="position:absolute; top:-100px; left:-100px; width:400px; height:400px; background:rgba(245,166,35,0.05); border-radius:50%;"></div>
+    <div style="position:absolute; bottom:-80px; right:-80px; width:300px; height:300px; background:rgba(245,166,35,0.08); border-radius:50%;"></div>
+
+    <div style="position:relative; z-index:1; text-align:center; max-width:400px;">
+      <!-- Logo -->
+      <div style="width:64px; height:64px; background:var(--gold); border-radius:16px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:24px; color:var(--navy); margin:0 auto 24px;">CH</div>
+
+      <h1 style="font-size:32px; font-weight:800; color:#ffffff; margin-bottom:12px;">CredenceHub</h1>
+      <p style="font-size:16px; color:rgba(255,255,255,0.7); line-height:1.6; margin-bottom:40px;">
+        Real Estate Investment & Construction Analysis Platform for Canadian and US markets.
+      </p>
+
+      <!-- Feature list -->
+      <div style="text-align:left; display:flex; flex-direction:column; gap:14px;">
+        {% for feature in [
+          ('trending-up', 'Deal Analysis for 5 strategies'),
+          ('hard-hat', 'Construction Cost Calculator'),
+          ('file-text', 'Branded PDF & Excel Reports'),
+          ('folder-kanban', 'Project Management Suite')
+        ] %}
+        <div style="display:flex; align-items:center; gap:12px; color:rgba(255,255,255,0.85); font-size:14px;">
+          <div style="width:32px; height:32px; background:rgba(245,166,35,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <i data-lucide="{{ feature[0] }}" style="width:16px; height:16px; color:var(--gold);"></i>
+          </div>
+          {{ feature[1] }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div style="width:480px; display:flex; align-items:center; justify-content:center; padding:40px; background:var(--bg-secondary);">
+    <div style="width:100%; max-width:380px;">
+
+      <h2 style="font-size:26px; font-weight:800; color:var(--text-primary); margin-bottom:6px;">Welcome back</h2>
+      <p style="font-size:14px; color:var(--text-muted); margin-bottom:32px;">Sign in to your CredenceHub account</p>
+
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}" style="margin-bottom:16px;">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Login Form -->
+      <form method="POST" action="{{ url_for('auth.login') }}">
+
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" name="email" class="form-control"
+                 placeholder="you@example.com" required
+                 style="background:var(--bg-primary);" />
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label class="form-label" style="margin-bottom:0;">Password</label>
+            <a href="{{ url_for('auth.forgot_password') }}"
+               style="font-size:12px; color:var(--navy); font-weight:500;">Forgot password?</a>
+          </div>
+          <input type="password" name="password" class="form-control"
+                 placeholder="Enter your password" required
+                 style="background:var(--bg-primary);" />
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:24px;">
+          <input type="checkbox" name="remember" id="remember"
+                 style="width:16px; height:16px; accent-color:var(--navy);" />
+          <label for="remember" style="font-size:13px; color:var(--text-secondary); cursor:pointer;">
+            Keep me signed in
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full"
+                style="width:100%; justify-content:center; padding:12px;">
+          Sign In
+        </button>
+
+      </form>
+
+      <div style="text-align:center; margin-top:24px;">
+        <p style="font-size:14px; color:var(--text-muted);">
+          Don't have an account?
+          <a href="{{ url_for('auth.register') }}"
+             style="color:var(--navy); font-weight:600;">Create one free</a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

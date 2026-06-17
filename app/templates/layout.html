@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="app-wrapper">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+
+    <!-- Sidebar Header -->
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">CH</div>
+        <span class="sidebar-logo-text">CredenceHub</span>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
+        <i data-lucide="panel-left-close" style="width:18px; height:18px;"></i>
+      </button>
+    </div>
+
+    <!-- Sidebar Nav -->
+    <nav class="sidebar-nav">
+
+      <!-- Main -->
+      <div class="nav-section">
+        <div class="nav-section-label">Main</div>
+
+        <a href="{{ url_for('dashboard.index') }}"
+           class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+          <span class="nav-item-icon">
+            <i data-lucide="layout-dashboard" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Dashboard</span>
+        </a>
+      </div>
+
+      <!-- Analysis -->
+      <div class="nav-section">
+        <div class="nav-section-label">Analysis</div>
+
+        <a href="{{ url_for('deals.index') }}"
+           class="nav-item {% if 'deals' in request.endpoint %}active{% endif %}">
+          <span class="nav-item-icon">
+            <i data-lucide="trending-up" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Deal Analysis</span>
+        </a>
+
+        <a href="{{ url_for('construction.index') }}"
+           class="nav-item {% if 'construction' in request.endpoint %}active{% endif %}
+           {% if not current_user.is_premium() %}locked{% endif %}">
+          <span class="nav-item-icon">
+            <i data-lucide="hard-hat" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Construction Calc</span>
+          {% if not current_user.is_premium() %}
+            <span class="nav-item-badge">Pro</span>
+          {% endif %}
+        </a>
+
+        <a href="{{ url_for('deals.index') }}"
+           class="nav-item {% if not current_user.is_premium() %}locked{% endif %}">
+          <span class="nav-item-icon">
+            <i data-lucide="map-pin" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Comps</span>
+          {% if not current_user.is_premium() %}
+            <span class="nav-item-badge">Pro</span>
+          {% endif %}
+        </a>
+      </div>
+
+      <!-- Tools -->
+      <div class="nav-section">
+        <div class="nav-section-label">Tools</div>
+
+        <a href="{{ url_for('marketing.index') }}"
+           class="nav-item {% if 'marketing' in request.endpoint %}active{% endif %}
+           {% if not current_user.is_premium() %}locked{% endif %}">
+          <span class="nav-item-icon">
+            <i data-lucide="megaphone" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Marketing</span>
+        </a>
+
+        <a href="{{ url_for('funding.index') }}"
+           class="nav-item {% if 'funding' in request.endpoint %}active{% endif %}
+           {% if not current_user.is_premium() %}locked{% endif %}">
+          <span class="nav-item-icon">
+            <i data-lucide="landmark" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Funding</span>
+        </a>
+
+        <a href="{{ url_for('projects.index') }}"
+           class="nav-item {% if 'projects' in request.endpoint %}active{% endif %}
+           {% if not current_user.is_premium() %}locked{% endif %}">
+          <span class="nav-item-icon">
+            <i data-lucide="folder-kanban" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Projects</span>
+        </a>
+
+        <a href="{{ url_for('documents.index') }}"
+           class="nav-item {% if 'documents' in request.endpoint %}active{% endif %}
+           {% if not current_user.is_premium() %}locked{% endif %}">
+          <span class="nav-item-icon">
+            <i data-lucide="file-text" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Documents</span>
+        </a>
+      </div>
+
+      <!-- Account -->
+      <div class="nav-section">
+        <div class="nav-section-label">Account</div>
+
+        <a href="{{ url_for('auth.profile') }}"
+           class="nav-item {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+          <span class="nav-item-icon">
+            <i data-lucide="user" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Profile</span>
+        </a>
+
+        {% if current_user.is_pro() %}
+        <a href="#"
+           class="nav-item">
+          <span class="nav-item-icon">
+            <i data-lucide="users" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Team</span>
+        </a>
+        {% endif %}
+
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('admin.index') }}"
+           class="nav-item {% if 'admin' in request.endpoint %}active{% endif %}">
+          <span class="nav-item-icon">
+            <i data-lucide="shield" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Admin</span>
+        </a>
+        {% endif %}
+
+        <a href="{{ url_for('auth.logout') }}" class="nav-item">
+          <span class="nav-item-icon">
+            <i data-lucide="log-out" style="width:18px; height:18px;"></i>
+          </span>
+          <span class="nav-item-text">Logout</span>
+        </a>
+      </div>
+
+    </nav>
+
+    <!-- Sidebar Footer - User Info -->
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">
+          {% if current_user.profile and current_user.profile.first_name %}
+            {{ current_user.profile.first_name[0].upper() }}{% if current_user.profile.last_name %}{{ current_user.profile.last_name[0].upper() }}{% endif %}
+          {% else %}
+            {{ current_user.email[0].upper() }}
+          {% endif %}
+        </div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">
+            {% if current_user.profile and current_user.profile.first_name %}
+              {{ current_user.profile.full_name() }}
+            {% else %}
+              {{ current_user.email.split('@')[0] }}
+            {% endif %}
+          </div>
+          <div class="sidebar-user-plan">{{ current_user.plan }} plan</div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="main-content" id="mainContent">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <!-- Mobile menu toggle -->
+        <button class="header-btn" id="mobileMenuBtn" style="display:none;">
+          <i data-lucide="menu" style="width:20px; height:20px;"></i>
+        </button>
+        <div>
+          <div class="header-title">{% block page_title %}CredenceHub{% endblock %}</div>
+          <div class="header-subtitle">{% block page_subtitle %}{% endblock %}</div>
+        </div>
+      </div>
+
+      <div class="header-right">
+
+        <!-- Plan indicator -->
+        <div class="plan-switcher">
+          <span class="plan-badge {{ current_user.plan }}">{{ current_user.plan }}</span>
+          {% if not current_user.is_premium() %}
+            <span style="font-size:12px; color: var(--gold);">Upgrade</span>
+          {% endif %}
+        </div>
+
+        <!-- Dark mode toggle -->
+        <button class="header-btn" id="themeToggle" title="Toggle dark mode">
+          <i data-lucide="moon" style="width:18px; height:18px;" id="themeIcon"></i>
+        </button>
+
+        <!-- Notifications -->
+        <button class="header-btn" id="notifBtn" title="Notifications">
+          <i data-lucide="bell" style="width:18px; height:18px;"></i>
+          {% if notifications is defined and notifications %}
+            <span class="notification-badge"></span>
+          {% endif %}
+        </button>
+
+        <!-- User avatar dropdown -->
+        <div class="dropdown">
+          <button class="header-btn" id="userMenuBtn">
+            <div style="width:32px; height:32px; border-radius:50%; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">
+              {% if current_user.profile and current_user.profile.first_name %}
+                {{ current_user.profile.first_name[0].upper() }}
+              {% else %}
+                {{ current_user.email[0].upper() }}
+              {% endif %}
+            </div>
+          </button>
+          <div class="dropdown-menu" id="userMenu">
+            <a href="{{ url_for('auth.profile') }}" class="dropdown-item">
+              <i data-lucide="user" style="width:15px; height:15px;"></i>
+              My Profile
+            </a>
+            <div class="dropdown-divider"></div>
+            <a href="{{ url_for('auth.logout') }}" class="dropdown-item" style="color:var(--danger);">
+              <i data-lucide="log-out" style="width:15px; height:15px;"></i>
+              Logout
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="page-content">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
+
+</div>
+
+<!-- Mobile sidebar overlay -->
+<div class="mobile-overlay" id="mobileOverlay"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999;"
+     onclick="closeMobileSidebar()"></div>
+
+{% endblock %}

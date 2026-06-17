@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="CredenceHub - Real Estate Investment & Construction Analysis Platform" />
+  <title>{% block title %}CredenceHub{% endblock %}</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}" />
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="toast-container" id="toastContainer">
+      {% for category, message in messages %}
+        <div class="toast" id="toast-{{ loop.index }}">
+          <span class="toast-icon">
+            {% if category == 'success' %}
+              <i data-lucide="check-circle" style="color: var(--success); width:18px; height:18px;"></i>
+            {% elif category == 'danger' %}
+              <i data-lucide="x-circle" style="color: var(--danger); width:18px; height:18px;"></i>
+            {% elif category == 'warning' %}
+              <i data-lucide="alert-triangle" style="color: var(--warning); width:18px; height:18px;"></i>
+            {% else %}
+              <i data-lucide="info" style="color: var(--info); width:18px; height:18px;"></i>
+            {% endif %}
+          </span>
+          <span class="toast-message">{{ message }}</span>
+          <button class="toast-close" onclick="this.closest('.toast').remove()">
+            <i data-lucide="x" style="width:16px; height:16px;"></i>
+          </button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+{% block body %}{% endblock %}
+
+<!-- Main JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+{% block extra_js %}{% endblock %}
+
+<script>
+  // Initialize Lucide icons
+  lucide.createIcons();
+
+  // Auto-dismiss toasts after 5 seconds
+  document.querySelectorAll('.toast').forEach(function(toast) {
+    setTimeout(function() {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100%)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(function() { toast.remove(); }, 300);
+    }, 5000);
+  });
+</script>
+
+</body>
+</html>

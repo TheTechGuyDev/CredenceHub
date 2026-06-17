@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Setup - CredenceHub{% endblock %}
+
+{% block body %}
+<div style="min-height:100vh; background:var(--bg-primary); display:flex; align-items:center; justify-content:center; padding:40px 20px;" data-theme="light">
+  <div style="width:100%; max-width:560px;">
+
+    <!-- Header -->
+    <div style="text-align:center; margin-bottom:32px;">
+      <div style="width:56px; height:56px; background:var(--navy); border-radius:14px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; color:var(--gold); margin:0 auto 16px;">CH</div>
+      <h1 style="font-size:24px; font-weight:800; color:var(--text-primary); margin-bottom:6px;">Set up your account</h1>
+      <p style="font-size:14px; color:var(--text-muted);">Step {{ step }} of 4 — Help us personalise your experience</p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div style="background:var(--bg-hover); border-radius:4px; height:6px; margin-bottom:32px; overflow:hidden;">
+      <div style="height:100%; background:var(--navy); border-radius:4px; width:{{ (step / 4 * 100)|int }}%; transition:width 0.3s ease;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="padding:32px;">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.onboarding', step=step) }}">
+          <input type="hidden" name="step" value="{{ step }}" />
+
+          {% if step == 1 %}
+          <h3 style="font-size:18px; font-weight:700; color:var(--text-primary); margin-bottom:6px;">What best describes you?</h3>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:24px;">Select your primary role in real estate</p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            {% for role, label, icon in [
+              ('wholesaler', 'Wholesaler', 'tag'),
+              ('flipper', 'Fix & Flip Investor', 'hammer'),
+              ('developer', 'Developer', 'building-2'),
+              ('builder', 'Builder / Contractor', 'hard-hat'),
+              ('investor', 'Buy & Hold Investor', 'trending-up'),
+              ('lender', 'Private Lender', 'landmark')
+            ] %}
+            <label style="display:flex; align-items:center; gap:12px; padding:14px; border:2px solid var(--border-color); border-radius:10px; cursor:pointer; transition:all 0.2s;">
+              <input type="radio" name="investor_role" value="{{ role }}"
+                     style="accent-color:var(--navy);" required />
+              <div style="display:flex; align-items:center; gap:8px;">
+                <i data-lucide="{{ icon }}" style="width:16px; height:16px; color:var(--navy);"></i>
+                <span style="font-size:13px; font-weight:500; color:var(--text-primary);">{{ label }}</span>
+              </div>
+            </label>
+            {% endfor %}
+          </div>
+
+          {% elif step == 2 %}
+          <h3 style="font-size:18px; font-weight:700; color:var(--text-primary); margin-bottom:6px;">Target Markets</h3>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:24px;">Which markets do you invest in?</p>
+          <div class="form-group">
+            <label class="form-label">Primary cities or regions</label>
+            <input type="text" name="target_markets" class="form-control"
+                   placeholder="e.g. Toronto ON, Dallas TX, Vancouver BC"
+                   style="background:var(--bg-primary);" />
+            <p class="form-text">Separate multiple markets with commas</p>
+          </div>
+
+          {% elif step == 3 %}
+          <h3 style="font-size:18px; font-weight:700; color:var(--text-primary); margin-bottom:6px;">Experience Level</h3>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:24px;">How long have you been investing?</p>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            {% for value, label, desc in [
+              ('beginner', 'Just Getting Started', 'Less than 1 year of experience'),
+              ('intermediate', 'Growing Investor', '1-5 years, have closed some deals'),
+              ('advanced', 'Experienced Investor', '5+ years, active portfolio')
+            ] %}
+            <label style="display:flex; align-items:flex-start; gap:12px; padding:16px; border:2px solid var(--border-color); border-radius:10px; cursor:pointer;">
+              <input type="radio" name="experience_level" value="{{ value }}"
+                     style="accent-color:var(--navy); margin-top:2px;" required />
+              <div>
+                <p style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:2px;">{{ label }}</p>
+                <p style="font-size:12px; color:var(--text-muted);">{{ desc }}</p>
+              </div>
+            </label>
+            {% endfor %}
+          </div>
+
+          {% elif step == 4 %}
+          <h3 style="font-size:18px; font-weight:700; color:var(--text-primary); margin-bottom:6px;">Team Size</h3>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:24px;">Will you be working alone or with a team?</p>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            {% for value, label in [
+              ('solo', 'Just me'),
+              ('small', '2-3 people'),
+              ('medium', '4-6 people'),
+              ('large', '7+ people')
+            ] %}
+            <label style="display:flex; align-items:center; gap:12px; padding:14px; border:2px solid var(--border-color); border-radius:10px; cursor:pointer;">
+              <input type="radio" name="team_size" value="{{ value }}"
+                     style="accent-color:var(--navy);" required />
+              <span style="font-size:14px; font-weight:500; color:var(--text-primary);">{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:32px;">
+            {% if step > 1 %}
+            <a href="{{ url_for('auth.onboarding', step=step-1) }}"
+               class="btn btn-outline">
+              <i data-lucide="arrow-left" style="width:16px; height:16px;"></i>
+              Back
+            </a>
+            {% else %}
+            <div></div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary">
+              {% if step == 4 %}
+                Get Started
+                <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+              {% else %}
+                Continue
+                <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+              {% endif %}
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

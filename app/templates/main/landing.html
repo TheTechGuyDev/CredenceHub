@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CredenceHub - Real Estate Investment Platform</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body data-theme="light" style="background:var(--bg-primary);">
+  <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; padding:40px 20px;">
+    <div>
+      <div style="width:72px; height:72px; background:var(--navy); border-radius:18px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:28px; color:var(--gold); margin:0 auto 24px;">CH</div>
+      <h1 style="font-size:40px; font-weight:800; color:var(--navy); margin-bottom:12px;">CredenceHub</h1>
+      <p style="font-size:18px; color:var(--text-muted); margin-bottom:32px; max-width:500px;">Real Estate Investment & Construction Analysis Platform for Canada & USA</p>
+      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">Get Started Free</a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-lg">Sign In</a>
+      </div>
+    </div>
+  </div>
+  <script>lucide.createIcons();</script>
+</body>
+</html>
