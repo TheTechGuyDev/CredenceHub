@@ -1,6 +1,330 @@
 {% extends "layout.html" %}
 {% block page_title %}Dashboard{% endblock %}
-{% block page_subtitle %}Welcome back{% endblock %}
+{% block page_subtitle %}Welcome back, {{ current_user.profile.first_name if current_user.profile and current_user.profile.first_name else 'there' }}{% endblock %}
+
 {% block content %}
-<p style="color:var(--text-muted);">Dashboard coming soon.</p>
+
+<!-- KPI Cards -->
+<div class="kpi-grid">
+
+  <div class="kpi-card">
+    <div class="kpi-icon navy">
+      <i data-lucide="trending-up" style="width:22px; height:22px;"></i>
+    </div>
+    <div class="kpi-data">
+      <div class="kpi-value">{{ active_deals }}</div>
+      <div class="kpi-label">Active Deals</div>
+      <div class="kpi-change up">{{ total_deals }} total</div>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-icon gold">
+      <i data-lucide="dollar-sign" style="width:22px; height:22px;"></i>
+    </div>
+    <div class="kpi-data">
+      <div class="kpi-value">$0</div>
+      <div class="kpi-label">Projected Profit</div>
+      <div class="kpi-change up">Across all deals</div>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-icon success">
+      <i data-lucide="folder-kanban" style="width:22px; height:22px;"></i>
+    </div>
+    <div class="kpi-data">
+      <div class="kpi-value">{{ active_projects }}</div>
+      <div class="kpi-label">Active Projects</div>
+      <div class="kpi-change up">In progress</div>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-icon info">
+      <i data-lucide="hard-hat" style="width:22px; height:22px;"></i>
+    </div>
+    <div class="kpi-data">
+      <div class="kpi-value">{{ construction_projects }}</div>
+      <div class="kpi-label">Cost Estimates</div>
+      <div class="kpi-change up">Construction projects</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Main Grid -->
+<div style="display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start;">
+
+  <!-- Left Column -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- Quick Actions -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Quick Actions</span>
+      </div>
+      <div class="card-body">
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;">
+
+          <a href="{{ url_for('deals.new_deal') }}" style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:20px 12px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:var(--radius-md); text-align:center; transition:all 0.2s; text-decoration:none;" onmouseover="this.style.borderColor='var(--navy)'; this.style.background='var(--bg-hover)'" onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-primary)'">
+            <div style="width:44px; height:44px; background:rgba(15,45,94,0.1); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center;">
+              <i data-lucide="plus-circle" style="width:22px; height:22px; color:var(--navy);"></i>
+            </div>
+            <div>
+              <div style="font-size:13px; font-weight:600; color:var(--text-primary);">New Deal</div>
+              <div style="font-size:11px; color:var(--text-muted);">Analyze a property</div>
+            </div>
+          </a>
+
+          <a href="{{ url_for('construction.index') }}" style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:20px 12px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:var(--radius-md); text-align:center; transition:all 0.2s; text-decoration:none;" onmouseover="this.style.borderColor='var(--gold)'; this.style.background='var(--bg-hover)'" onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-primary)'">
+            <div style="width:44px; height:44px; background:rgba(245,166,35,0.1); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center;">
+              <i data-lucide="hard-hat" style="width:22px; height:22px; color:var(--gold-dark);"></i>
+            </div>
+            <div>
+              <div style="font-size:13px; font-weight:600; color:var(--text-primary);">Cost Estimate</div>
+              <div style="font-size:11px; color:var(--text-muted);">Construction calc</div>
+            </div>
+          </a>
+
+          <a href="{{ url_for('projects.index') }}" style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:20px 12px; background:var(--bg-primary); border:1px solid var(--border-color); border-radius:var(--radius-md); text-align:center; transition:all 0.2s; text-decoration:none;" onmouseover="this.style.borderColor='var(--success)'; this.style.background='var(--bg-hover)'" onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='var(--bg-primary)'">
+            <div style="width:44px; height:44px; background:var(--success-light); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center;">
+              <i data-lucide="folder-kanban" style="width:22px; height:22px; color:var(--success);"></i>
+            </div>
+            <div>
+              <div style="font-size:13px; font-weight:600; color:var(--text-primary);">New Project</div>
+              <div style="font-size:11px; color:var(--text-muted);">Track a rehab</div>
+            </div>
+          </a>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Deals -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Recent Deals</span>
+        <a href="{{ url_for('deals.index') }}" class="btn btn-ghost btn-sm">
+          View all
+          <i data-lucide="arrow-right" style="width:14px; height:14px;"></i>
+        </a>
+      </div>
+
+      {% if recent_deals %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Deal Name</th>
+              <th>Strategy</th>
+              <th>Status</th>
+              <th>Updated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for deal in recent_deals %}
+            <tr>
+              <td>
+                <div style="font-weight:600; color:var(--text-primary);">{{ deal.name }}</div>
+                {% if deal.address %}
+                <div style="font-size:12px; color:var(--text-muted);">{{ deal.address }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge badge-{{ deal.strategy }}">
+                  {{ deal.strategy.replace('_', ' ').title() }}
+                </span>
+              </td>
+              <td>
+                <span class="badge badge-{{ deal.status }}">{{ deal.status.title() }}</span>
+              </td>
+              <td style="font-size:13px; color:var(--text-muted);">
+                {{ deal.updated_at.strftime('%b %d, %Y') }}
+              </td>
+              <td>
+                <a href="#" class="btn btn-ghost btn-sm">
+                  <i data-lucide="arrow-right" style="width:14px; height:14px;"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body">
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <i data-lucide="trending-up" style="width:28px; height:28px;"></i>
+          </div>
+          <div class="empty-state-title">No deals yet</div>
+          <div class="empty-state-text">Start by analyzing your first property deal</div>
+          <a href="{{ url_for('deals.new_deal') }}" class="btn btn-primary">
+            <i data-lucide="plus" style="width:16px; height:16px;"></i>
+            Analyze a Deal
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Profit Chart -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Profit Trend</span>
+        <span style="font-size:12px; color:var(--text-muted);">Last 6 months</span>
+      </div>
+      <div class="card-body">
+        <canvas id="profitChart" height="100"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Column -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- Plan Card -->
+    {% if not current_user.is_premium() %}
+    <div style="background:linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%); border-radius:var(--radius-lg); padding:24px; color:#ffffff;">
+      <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--gold); margin-bottom:8px;">Upgrade to Premium</div>
+      <div style="font-size:18px; font-weight:800; margin-bottom:8px;">Unlock all features</div>
+      <div style="font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:20px; line-height:1.5;">
+        Construction Calculator, Comps, Marketing Tools, Project Management and more.
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
+        {% for feature in ['Construction Cost Calculator', 'Comparable Sales & Comps', 'Deal Marketing Tools', 'Funding Proposals', 'PDF & Excel Exports'] %}
+        <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:rgba(255,255,255,0.85);">
+          <i data-lucide="check" style="width:14px; height:14px; color:var(--gold); flex-shrink:0;"></i>
+          {{ feature }}
+        </div>
+        {% endfor %}
+      </div>
+      <a href="#" class="btn btn-gold" style="width:100%; justify-content:center;">
+        Upgrade — $49/month
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- Recent Activity -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Recent Activity</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        {% if recent_activity %}
+          {% for activity in recent_activity %}
+          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 20px; border-bottom:1px solid var(--border-color);">
+            <div style="width:32px; height:32px; background:var(--bg-primary); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
+              <i data-lucide="activity" style="width:14px; height:14px; color:var(--navy);"></i>
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:500; color:var(--text-primary);">{{ activity.action }}</div>
+              {% if activity.entity_name %}
+              <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">{{ activity.entity_name }}</div>
+              {% endif %}
+              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                {{ activity.created_at.strftime('%b %d, %Y') }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state" style="padding:40px 20px;">
+            <div class="empty-state-icon">
+              <i data-lucide="activity" style="width:24px; height:24px;"></i>
+            </div>
+            <div class="empty-state-title" style="font-size:14px;">No activity yet</div>
+            <div class="empty-state-text" style="font-size:12px;">Your recent actions will appear here</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Notifications</span>
+        {% if notifications %}
+        <span class="badge badge-navy">{{ notifications|length }}</span>
+        {% endif %}
+      </div>
+      <div class="card-body" style="padding:0;">
+        {% if notifications %}
+          {% for notif in notifications %}
+          <div style="display:flex; align-items:flex-start; gap:12px; padding:14px 20px; border-bottom:1px solid var(--border-color);">
+            <div style="width:8px; height:8px; background:var(--gold); border-radius:50%; flex-shrink:0; margin-top:6px;"></div>
+            <div style="flex:1;">
+              <div style="font-size:13px; font-weight:600; color:var(--text-primary);">{{ notif.title }}</div>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">{{ notif.message }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state" style="padding:40px 20px;">
+            <div class="empty-state-icon">
+              <i data-lucide="bell" style="width:24px; height:24px;"></i>
+            </div>
+            <div class="empty-state-title" style="font-size:14px;">All caught up</div>
+            <div class="empty-state-text" style="font-size:12px;">No new notifications</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Profit Trend Chart
+const ctx = document.getElementById('profitChart');
+if (ctx) {
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      datasets: [{
+        label: 'Projected Profit',
+        data: [0, 0, 0, 0, 0, 0],
+        borderColor: '#0F2D5E',
+        backgroundColor: 'rgba(15, 45, 94, 0.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#F5A623',
+        pointBorderColor: '#F5A623',
+        pointRadius: 4,
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: {
+            callback: function(value) {
+              return '$' + value.toLocaleString();
+            },
+            font: { size: 11 }
+          }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+</script>
 {% endblock %}
