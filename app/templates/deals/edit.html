@@ -60,7 +60,19 @@
             </h4>
 
             {% if deal.strategy == 'wholesale' %}
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+            <!-- Deal Type Toggle -->
+            <div class="form-group">
+              <label class="form-label">Wholesale Deal Type</label>
+              <select name="input_deal_type" class="form-control calc-input" id="dealTypeSelect" onchange="toggleWholesaleType(this.value)">
+                <option value="rehab" {% if inputs.get('deal_type') != 'land' %}selected{% endif %}>Rehab / Fix & Flip Wholesale</option>
+                <option value="land" {% if inputs.get('deal_type') == 'land' %}selected{% endif %}>Land / New Construction Wholesale</option>
+              </select>
+              <p class="form-text">Rehab: assign to a flipper. Land: assign to a developer.</p>
+            </div>
+
+            <!-- Rehab Wholesale Inputs -->
+            <div id="rehabInputs" style="display:{% if inputs.get('deal_type') == 'land' %}none{% else %}grid{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group">
                 <label class="form-label">Purchase Price ($)</label>
                 <input type="number" name="input_purchase_price" class="form-control calc-input"
@@ -85,6 +97,63 @@
                 <label class="form-label">Closing Costs ($)</label>
                 <input type="number" name="input_closing_costs" class="form-control calc-input"
                        value="{{ inputs.get('closing_costs', 3000) }}" placeholder="3000" step="500" />
+              </div>
+            </div>
+
+            <!-- Land Wholesale Inputs (Rehab Valuator MLV Method) -->
+            <div id="landInputs" style="display:{% if inputs.get('deal_type') == 'land' %}grid{% else %}none{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group" style="grid-column:1/-1;">
+                <div style="background:rgba(15,45,94,0.06); border:1px solid rgba(15,45,94,0.15); border-radius:var(--radius-sm); padding:12px 16px;">
+                  <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;">Rehab Valuator — Maximum Land Value Formula</p>
+                  <p style="font-size:12px; color:var(--text-muted);">MLV = (ARV × (1 − Profit Margin)) − Construction − Soft − Holding − Financing − Selling Costs</p>
+                  <p style="font-size:12px; color:var(--text-muted);">MAO = MLV − Assignment Fee</p>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Post-Construction ARV ($)</label>
+                <input type="number" name="input_arv" class="form-control calc-input"
+                       value="{{ inputs.get('arv', '') }}" placeholder="400000" step="5000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Target Profit Margin (%)</label>
+                <input type="number" name="input_target_profit_margin" class="form-control calc-input"
+                       value="{{ inputs.get('target_profit_margin', 25) }}" placeholder="25" step="1" min="15" max="40" />
+                <p class="form-text">Rehab Valuator recommended: 22–25%</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Construction Cost ($)</label>
+                <input type="number" name="input_construction_cost" class="form-control calc-input"
+                       value="{{ inputs.get('construction_cost', '') }}" placeholder="200000" step="5000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Soft Costs ($)</label>
+                <input type="number" name="input_soft_costs" class="form-control calc-input"
+                       value="{{ inputs.get('soft_costs', '') }}" placeholder="10000" step="1000" />
+                <p class="form-text">Permits, plans, engineering, surveys</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Holding Costs ($)</label>
+                <input type="number" name="input_holding_costs" class="form-control calc-input"
+                       value="{{ inputs.get('holding_costs', '') }}" placeholder="5000" step="500" />
+                <p class="form-text">Taxes, insurance during construction</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Financing Costs ($)</label>
+                <input type="number" name="input_financing_costs" class="form-control calc-input"
+                       value="{{ inputs.get('financing_costs', '') }}" placeholder="5000" step="500" />
+                <p class="form-text">Construction loan interest and fees</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Selling Costs (% of ARV)</label>
+                <input type="number" name="input_selling_costs_pct" class="form-control calc-input"
+                       value="{{ inputs.get('selling_costs_pct', 6) }}" placeholder="6" step="0.5" />
+                <p class="form-text">Agent commissions, closing costs</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Your Assignment Fee ($)</label>
+                <input type="number" name="input_assignment_fee" class="form-control calc-input"
+                       value="{{ inputs.get('assignment_fee', '') }}" placeholder="10000" step="500" />
+                <p class="form-text">Your profit as the wholesaler</p>
               </div>
             </div>
 
@@ -181,41 +250,155 @@
             </div>
 
             {% elif deal.strategy == 'construction' %}
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+            <!-- Exit Strategy Toggle -->
+            <div class="form-group">
+              <label class="form-label">Exit Strategy</label>
+              <select name="input_exit_strategy" class="form-control" id="exitStrategySelect" onchange="toggleExitStrategy(this.value)">
+                <option value="spec_build" {% if inputs.get('exit_strategy') != 'build_to_rent' %}selected{% endif %}>Spec Build — Build and Sell</option>
+                <option value="build_to_rent" {% if inputs.get('exit_strategy') == 'build_to_rent' %}selected{% endif %}>Build to Rent — Build and Hold</option>
+              </select>
+            </div>
+
+            <!-- Formula Info Box -->
+            <div style="background:rgba(15,45,94,0.06); border:1px solid rgba(15,45,94,0.15); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:16px;">
+              <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;" id="formulaLabel">
+                {% if inputs.get('exit_strategy') == 'build_to_rent' %}Rehab Valuator — Build to Rent Formula{% else %}Rehab Valuator — Spec Build Formula{% endif %}
+              </p>
+              <p style="font-size:12px; color:var(--text-muted);" id="formulaText">
+                {% if inputs.get('exit_strategy') == 'build_to_rent' %}
+                  MLV = (NOI ÷ Cap Rate × (1 − Equity Margin)) − Construction − Soft − Holding − Financing Costs
+                {% else %}
+                  MLV = (ARV × (1 − Profit Margin)) − Construction − Soft − Holding − Financing − Selling Costs
+                {% endif %}
+              </p>
+            </div>
+
+            <!-- Spec Build Inputs -->
+            <div id="specBuildInputs" style="display:{% if inputs.get('exit_strategy') == 'build_to_rent' %}none{% else %}grid{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group">
-                <label class="form-label">Land Cost ($)</label>
-                <input type="number" name="input_land_cost" class="form-control calc-input"
-                       value="{{ inputs.get('land_cost', '') }}" placeholder="0" step="5000" />
+                <label class="form-label">Post-Construction ARV ($)</label>
+                <input type="number" name="input_arv" class="form-control calc-input"
+                       value="{{ inputs.get('arv', '') }}" placeholder="400000" step="5000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Target Profit Margin (%)</label>
+                <input type="number" name="input_target_profit_margin" class="form-control calc-input"
+                       value="{{ inputs.get('target_profit_margin', 25) }}" placeholder="25" step="1" />
+                <p class="form-text">Rehab Valuator recommended: 22–25%</p>
               </div>
               <div class="form-group">
                 <label class="form-label">Construction Cost ($)</label>
                 <input type="number" name="input_construction_cost" class="form-control calc-input"
-                       value="{{ inputs.get('construction_cost', '') }}" placeholder="0" step="5000" />
+                       value="{{ inputs.get('construction_cost', '') }}" placeholder="200000" step="5000" />
               </div>
               <div class="form-group">
                 <label class="form-label">Soft Costs ($)</label>
                 <input type="number" name="input_soft_costs" class="form-control calc-input"
-                       value="{{ inputs.get('soft_costs', '') }}" placeholder="0" step="1000" />
+                       value="{{ inputs.get('soft_costs', '') }}" placeholder="10000" step="1000" />
+                <p class="form-text">Permits, plans, engineering</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Holding Costs ($)</label>
+                <input type="number" name="input_holding_costs" class="form-control calc-input"
+                       value="{{ inputs.get('holding_costs', '') }}" placeholder="5000" step="500" />
               </div>
               <div class="form-group">
                 <label class="form-label">Financing Costs ($)</label>
                 <input type="number" name="input_financing_costs" class="form-control calc-input"
-                       value="{{ inputs.get('financing_costs', 0) }}" placeholder="0" step="1000" />
+                       value="{{ inputs.get('financing_costs', '') }}" placeholder="5000" step="500" />
               </div>
               <div class="form-group">
-                <label class="form-label">ARV / Sale Price ($)</label>
-                <input type="number" name="input_arv" class="form-control calc-input"
-                       value="{{ inputs.get('arv', '') }}" placeholder="0" step="5000" />
+                <label class="form-label">Selling Costs (% of ARV)</label>
+                <input type="number" name="input_selling_costs_pct" class="form-control calc-input"
+                       value="{{ inputs.get('selling_costs_pct', 6) }}" placeholder="6" step="0.5" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Land Cost ($) — if known</label>
+                <input type="number" name="input_land_cost" class="form-control calc-input"
+                       value="{{ inputs.get('land_cost', 0) }}" placeholder="0" step="5000" />
+                <p class="form-text">Leave 0 to calculate MLV</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Assignment Fee ($) — if wholesaling</label>
+                <input type="number" name="input_assignment_fee" class="form-control calc-input"
+                       value="{{ inputs.get('assignment_fee', 0) }}" placeholder="0" step="500" />
               </div>
               <div class="form-group">
                 <label class="form-label">Floor Area (sq ft)</label>
                 <input type="number" name="input_floor_area" class="form-control calc-input"
-                       value="{{ inputs.get('floor_area', '') }}" placeholder="0" step="100" />
+                       value="{{ inputs.get('floor_area', '') }}" placeholder="2000" step="100" />
               </div>
               <div class="form-group">
                 <label class="form-label">Contingency (%)</label>
                 <input type="number" name="input_contingency_pct" class="form-control calc-input"
-                       value="{{ inputs.get('contingency_pct', 10) }}" placeholder="10" step="1" />
+                       value="{{ inputs.get('contingency_pct', 0) }}" placeholder="0" step="1" />
+              </div>
+            </div>
+
+            <!-- Build to Rent Inputs -->
+            <div id="buildToRentInputs" style="display:{% if inputs.get('exit_strategy') == 'build_to_rent' %}grid{% else %}none{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Gross Annual Rent ($)</label>
+                <input type="number" name="input_gross_annual_rent" class="form-control calc-input"
+                       value="{{ inputs.get('gross_annual_rent', '') }}" placeholder="42000" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Annual Operating Expenses ($)</label>
+                <input type="number" name="input_annual_operating_expenses" class="form-control calc-input"
+                       value="{{ inputs.get('annual_operating_expenses', '') }}" placeholder="7000" step="500" />
+                <p class="form-text">Mgmt, maintenance, taxes, insurance, vacancy</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Market Cap Rate (%)</label>
+                <input type="number" name="input_market_cap_rate" class="form-control calc-input"
+                       value="{{ inputs.get('market_cap_rate', 8) }}" placeholder="8" step="0.5" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Desired Equity Margin (%)</label>
+                <input type="number" name="input_desired_equity_margin" class="form-control calc-input"
+                       value="{{ inputs.get('desired_equity_margin', 20) }}" placeholder="20" step="1" />
+                <p class="form-text">Rehab Valuator recommended: 20%</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Construction Cost ($)</label>
+                <input type="number" name="input_construction_cost" class="form-control calc-input"
+                       value="{{ inputs.get('construction_cost', '') }}" placeholder="225000" step="5000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Soft Costs ($)</label>
+                <input type="number" name="input_soft_costs" class="form-control calc-input"
+                       value="{{ inputs.get('soft_costs', '') }}" placeholder="6000" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Holding Costs ($)</label>
+                <input type="number" name="input_holding_costs" class="form-control calc-input"
+                       value="{{ inputs.get('holding_costs', '') }}" placeholder="3000" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Financing Costs ($)</label>
+                <input type="number" name="input_financing_costs" class="form-control calc-input"
+                       value="{{ inputs.get('financing_costs', '') }}" placeholder="5000" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Land Cost ($) — if known</label>
+                <input type="number" name="input_land_cost" class="form-control calc-input"
+                       value="{{ inputs.get('land_cost', 0) }}" placeholder="0" step="5000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Assignment Fee ($) — if wholesaling</label>
+                <input type="number" name="input_assignment_fee" class="form-control calc-input"
+                       value="{{ inputs.get('assignment_fee', 0) }}" placeholder="0" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Floor Area (sq ft)</label>
+                <input type="number" name="input_floor_area" class="form-control calc-input"
+                       value="{{ inputs.get('floor_area', '') }}" placeholder="2000" step="100" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Contingency (%)</label>
+                <input type="number" name="input_contingency_pct" class="form-control calc-input"
+                       value="{{ inputs.get('contingency_pct', 0) }}" placeholder="0" step="1" />
               </div>
             </div>
 
@@ -298,14 +481,27 @@
         {% if outputs %}
 
           {% if deal.strategy == 'wholesale' %}
-          {% set items = [
-            ('Wholesale Profit', outputs.get('wholesale_profit', 0), True, True),
-            ('Max Offer (70% Rule)', outputs.get('max_offer_70', 0), True, False),
-            ('Max Offer (75% Rule)', outputs.get('max_offer_75', 0), True, False),
-            ('Buyer All-In Cost', outputs.get('buyer_all_in', 0), True, False),
-            ('Buyer Profit', outputs.get('buyer_profit', 0), True, True),
-            ('Buyer ROI', outputs.get('buyer_roi', 0), False, False),
-          ] %}
+            {% if outputs.get('deal_type') == 'land' %}
+            {% set items = [
+              ('Maximum Land Value (MLV)', outputs.get('maximum_land_value', 0), True, True),
+              ('Max Allowable Offer (MAO)', outputs.get('mao', 0), True, True),
+              ('Your Assignment Fee', outputs.get('wholesale_profit', 0), True, True),
+              ('Developer Projected Profit', outputs.get('developer_profit', 0), True, False),
+              ('Selling Costs', outputs.get('selling_costs', 0), True, False),
+              ('Total Developer Costs', outputs.get('total_developer_costs', 0), True, False),
+            ] %}
+            {% else %}
+            {% set items = [
+              ('Your Assignment Profit', outputs.get('wholesale_profit', 0), True, True),
+              ('MAO at 70% Rule', outputs.get('mao_70', 0), True, True),
+              ('MAO at 75% Rule', outputs.get('mao_75', 0), True, False),
+              ('MAO at 80% Rule', outputs.get('mao_80', 0), True, False),
+              ('Buyer All-In Cost', outputs.get('buyer_all_in', 0), True, False),
+              ('Buyer Projected Profit', outputs.get('buyer_profit', 0), True, True),
+              ('Buyer ROI', outputs.get('buyer_roi', 0), False, False),
+              ('Deal Spread', outputs.get('spread', 0), True, False),
+            ] %}
+            {% endif %}
 
           {% elif deal.strategy == 'fix_flip' %}
           {% set items = [
@@ -315,6 +511,7 @@
             ('Annualized ROI', outputs.get('annualized_roi', 0), False, False),
             ('Cash-on-Cash Return', outputs.get('coc_return', 0), False, False),
             ('Break-Even ARV', outputs.get('break_even_arv', 0), True, False),
+            ('MAO Check (70% Rule)', outputs.get('mao_check_70', 0), True, False),
             ('Selling Costs', outputs.get('selling_costs', 0), True, False),
             ('Holding Costs', outputs.get('holding_costs', 0), True, False),
           ] %}
@@ -329,17 +526,38 @@
             ('Monthly Cash Flow', outputs.get('monthly_cashflow', 0), True, True),
             ('Annual Cash Flow', outputs.get('annual_cashflow', 0), True, False),
             ('Cash-on-Cash Return', outputs.get('coc_return', 0), False, False),
+            ('Gross Yield', outputs.get('gross_yield', 0), False, False),
           ] %}
 
           {% elif deal.strategy == 'construction' %}
-          {% set items = [
-            ('Total Project Cost', outputs.get('total_cost', 0), True, False),
-            ('Development Profit', outputs.get('profit', 0), True, True),
-            ('ROI', outputs.get('roi', 0), False, False),
-            ('Profit Margin', outputs.get('profit_margin', 0), False, False),
-            ('Cost Per Sq Ft', outputs.get('cost_per_sqft', 0), True, False),
-            ('Contingency', outputs.get('contingency', 0), True, False),
-          ] %}
+            {% if outputs.get('exit_strategy') == 'build_to_rent' %}
+            {% set items = [
+              ('NOI (Annual)', outputs.get('noi', 0), True, True),
+              ('As-Built Value', outputs.get('as_built_value', 0), True, True),
+              ('Maximum Land Value (MLV)', outputs.get('maximum_land_value', 0), True, True),
+              ('Max Allowable Offer (MAO)', outputs.get('mao', 0), True, True),
+              ('Built-In Equity', outputs.get('built_in_equity', 0), True, True),
+              ('Equity Position', outputs.get('equity_pct', 0), False, False),
+              ('Cap Rate', outputs.get('cap_rate', 0), False, False),
+              ('Gross Yield', outputs.get('gross_yield', 0), False, False),
+              ('Monthly Cash Flow Est.', outputs.get('monthly_cashflow_estimate', 0), True, False),
+              ('Cost Per Sq Ft', outputs.get('cost_per_sqft', 0), True, False),
+            ] %}
+            {% else %}
+            {% set items = [
+              ('Maximum Land Value (MLV)', outputs.get('maximum_land_value', 0), True, True),
+              ('Max Allowable Offer (MAO)', outputs.get('mao', 0), True, True),
+              ('Adjusted ARV', outputs.get('adjusted_arv', 0), True, False),
+              ('Developer Profit', outputs.get('developer_profit', 0), True, True),
+              ('Actual Profit Margin', outputs.get('actual_profit_margin', 0), False, False),
+              ('Target Profit Margin', outputs.get('target_profit_margin_pct', 0), False, False),
+              ('ROI', outputs.get('roi', 0), False, False),
+              ('Total Project Cost', outputs.get('total_cost', 0), True, False),
+              ('Selling Costs', outputs.get('selling_costs', 0), True, False),
+              ('Contingency', outputs.get('contingency', 0), True, False),
+              ('Cost Per Sq Ft', outputs.get('cost_per_sqft', 0), True, False),
+            ] %}
+            {% endif %}
 
           {% elif deal.strategy == 'commercial' %}
           {% set items = [
@@ -350,6 +568,7 @@
             ('Gross Rent Multiplier', outputs.get('grm', 0), False, False),
             ('DSCR', outputs.get('dscr', 0), False, False),
             ('Mortgage Payment', outputs.get('mortgage_payment', 0), True, False),
+            ('Annual Debt Service', outputs.get('annual_debt_service', 0), True, False),
             ('5-Year IRR', outputs.get('irr_5yr', 0), False, True),
           ] %}
           {% endif %}
@@ -366,6 +585,19 @@
             </span>
           </div>
           {% endfor %}
+
+          <!-- Deal Viability Indicator -->
+          {% if outputs.get('is_deal_viable') is not none %}
+          <div style="padding:12px 20px; display:flex; align-items:center; gap:8px;">
+            {% if outputs.get('is_deal_viable') %}
+            <div style="width:8px; height:8px; background:var(--success); border-radius:50%;"></div>
+            <span style="font-size:12px; font-weight:600; color:var(--success);">Deal looks viable</span>
+            {% else %}
+            <div style="width:8px; height:8px; background:var(--danger); border-radius:50%;"></div>
+            <span style="font-size:12px; font-weight:600; color:var(--danger);">Numbers don't work — adjust inputs</span>
+            {% endif %}
+          </div>
+          {% endif %}
 
         {% else %}
         <div class="empty-state" style="padding:40px 20px;">
@@ -418,20 +650,59 @@
 
 {% block extra_js %}
 <script>
+// Wholesale deal type toggle
+function toggleWholesaleType(type) {
+  const rehab = document.getElementById('rehabInputs');
+  const land = document.getElementById('landInputs');
+  if (rehab) rehab.style.display = type === 'land' ? 'none' : 'grid';
+  if (land) land.style.display = type === 'land' ? 'grid' : 'none';
+}
+
+// Construction exit strategy toggle
+function toggleExitStrategy(strategy) {
+  const spec = document.getElementById('specBuildInputs');
+  const rent = document.getElementById('buildToRentInputs');
+  const label = document.getElementById('formulaLabel');
+  const text = document.getElementById('formulaText');
+
+  if (spec) spec.style.display = strategy === 'build_to_rent' ? 'none' : 'grid';
+  if (rent) rent.style.display = strategy === 'build_to_rent' ? 'grid' : 'none';
+
+  if (strategy === 'build_to_rent') {
+    if (label) label.textContent = 'Rehab Valuator — Build to Rent Formula';
+    if (text) text.textContent = 'MLV = (NOI ÷ Cap Rate × (1 − Equity Margin)) − Construction − Soft − Holding − Financing Costs';
+  } else {
+    if (label) label.textContent = 'Rehab Valuator — Spec Build Formula';
+    if (text) text.textContent = 'MLV = (ARV × (1 − Profit Margin)) − Construction − Soft − Holding − Financing − Selling Costs';
+  }
+}
+
 {% if outputs %}
 // Waterfall Chart
 const ctx = document.getElementById('waterfallChart');
 if (ctx) {
   {% if deal.strategy == 'wholesale' %}
-  const labels = ['Purchase', 'Repairs', 'Assignment', 'ARV'];
-  const data = [
-    {{ inputs.get('purchase_price', 0) }},
-    {{ inputs.get('repair_cost', 0) }},
-    {{ outputs.get('assignment_fee', inputs.get('assignment_fee', 0)) }},
-    {{ inputs.get('arv', 0) }}
-  ];
+    {% if outputs.get('deal_type') == 'land' %}
+    const labels = ['ARV', 'Construction', 'Other Costs', 'MLV', 'MAO'];
+    const data = [
+      {{ inputs.get('arv', 0) }},
+      {{ inputs.get('construction_cost', 0) }},
+      {{ outputs.get('total_developer_costs', 0) - inputs.get('construction_cost', 0) }},
+      {{ outputs.get('maximum_land_value', 0) }},
+      {{ outputs.get('mao', 0) }}
+    ];
+    {% else %}
+    const labels = ['Purchase', 'Repairs', 'Assignment', 'ARV', 'MAO 70%'];
+    const data = [
+      {{ inputs.get('purchase_price', 0) }},
+      {{ inputs.get('repair_cost', 0) }},
+      {{ inputs.get('assignment_fee', 0) }},
+      {{ inputs.get('arv', 0) }},
+      {{ outputs.get('mao_70', 0) }}
+    ];
+    {% endif %}
   {% elif deal.strategy == 'fix_flip' %}
-  const labels = ['Purchase', 'Rehab', 'Holding', 'Selling Costs', 'Sale Price'];
+  const labels = ['Purchase', 'Rehab', 'Holding', 'Selling', 'Sale Price'];
   const data = [
     {{ inputs.get('purchase_price', 0) }},
     {{ inputs.get('rehab_cost', 0) }},
@@ -449,14 +720,25 @@ if (ctx) {
     {{ outputs.get('capital_left_in', 0) }}
   ];
   {% elif deal.strategy == 'construction' %}
-  const labels = ['Land', 'Construction', 'Soft Costs', 'Contingency', 'Sale Price'];
-  const data = [
-    {{ inputs.get('land_cost', 0) }},
-    {{ inputs.get('construction_cost', 0) }},
-    {{ inputs.get('soft_costs', 0) }},
-    {{ outputs.get('contingency', 0) }},
-    {{ inputs.get('arv', 0) }}
-  ];
+    {% if outputs.get('exit_strategy') == 'build_to_rent' %}
+    const labels = ['Gross Rent', 'Expenses', 'NOI', 'As-Built Value', 'MLV'];
+    const data = [
+      {{ inputs.get('gross_annual_rent', 0) }},
+      {{ inputs.get('annual_operating_expenses', 0) }},
+      {{ outputs.get('noi', 0) }},
+      {{ outputs.get('as_built_value', 0) }},
+      {{ outputs.get('maximum_land_value', 0) }}
+    ];
+    {% else %}
+    const labels = ['ARV', 'Construction', 'Soft Costs', 'Other', 'MLV'];
+    const data = [
+      {{ inputs.get('arv', 0) }},
+      {{ inputs.get('construction_cost', 0) }},
+      {{ inputs.get('soft_costs', 0) }},
+      {{ outputs.get('selling_costs', 0) }},
+      {{ outputs.get('maximum_land_value', 0) }}
+    ];
+    {% endif %}
   {% elif deal.strategy == 'commercial' %}
   const labels = ['Purchase', 'NOI', 'Debt Service', 'Cash Flow'];
   const data = [
