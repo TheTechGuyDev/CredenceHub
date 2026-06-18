@@ -1,5 +1,163 @@
 {% extends "layout.html" %}
 {% block page_title %}Deal Analysis{% endblock %}
+{% block page_subtitle %}Manage and analyze your real estate deals{% endblock %}
+
 {% block content %}
-<p style="color:var(--text-muted);">Deals coming soon.</p>
+
+<!-- Header Actions -->
+<div class="flex-between mb-24">
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+
+    <!-- Search -->
+    <div style="position:relative;">
+      <i data-lucide="search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); width:15px; height:15px; color:var(--text-muted);"></i>
+      <input type="text" id="searchInput" placeholder="Search deals..."
+             value="{{ search }}"
+             style="padding:8px 12px 8px 34px; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-card); color:var(--text-primary); font-size:13px; width:220px; outline:none;"
+             onkeyup="filterDeals()" />
+    </div>
+
+    <!-- Status Filter -->
+    <select onchange="applyFilter(this, 'status')"
+            style="padding:8px 12px; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-card); color:var(--text-primary); font-size:13px; cursor:pointer; outline:none;">
+      <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+      <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+      <option value="archived" {% if status_filter == 'archived' %}selected{% endif %}>Archived</option>
+      <option value="sold" {% if status_filter == 'sold' %}selected{% endif %}>Sold</option>
+    </select>
+
+    <!-- Strategy Filter -->
+    <select onchange="applyFilter(this, 'strategy')"
+            style="padding:8px 12px; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-card); color:var(--text-primary); font-size:13px; cursor:pointer; outline:none;">
+      <option value="all" {% if strategy_filter == 'all' %}selected{% endif %}>All Strategies</option>
+      <option value="wholesale" {% if strategy_filter == 'wholesale' %}selected{% endif %}>Wholesale</option>
+      <option value="fix_flip" {% if strategy_filter == 'fix_flip' %}selected{% endif %}>Fix & Flip</option>
+      <option value="brrrr" {% if strategy_filter == 'brrrr' %}selected{% endif %}>BRRRR</option>
+      <option value="construction" {% if strategy_filter == 'construction' %}selected{% endif %}>Construction</option>
+      <option value="commercial" {% if strategy_filter == 'commercial' %}selected{% endif %}>Commercial</option>
+    </select>
+
+  </div>
+
+  <a href="{{ url_for('deals.new_deal') }}" class="btn btn-primary">
+    <i data-lucide="plus" style="width:16px; height:16px;"></i>
+    New Deal
+  </a>
+</div>
+
+<!-- Deals Table -->
+<div class="card">
+  {% if deals %}
+  <div class="table-wrapper">
+    <table id="dealsTable">
+      <thead>
+        <tr>
+          <th data-sort>Deal Name</th>
+          <th data-sort>Strategy</th>
+          <th data-sort>Location</th>
+          <th data-sort>Status</th>
+          <th data-sort>Profit</th>
+          <th data-sort>ROI</th>
+          <th data-sort>Updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for deal in deals %}
+        {% set outputs = deal.outputs | from_json if deal.outputs else {} %}
+        <tr class="deal-row">
+          <td>
+            <div style="font-weight:600; color:var(--text-primary);">{{ deal.name }}</div>
+            {% if deal.address %}
+            <div style="font-size:12px; color:var(--text-muted);">{{ deal.address }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge badge-{{ deal.strategy }}">
+              {{ deal.strategy.replace('_', ' ').title() }}
+            </span>
+          </td>
+          <td style="font-size:13px; color:var(--text-secondary);">
+            {% if deal.city %}{{ deal.city }}{% if deal.province_state %}, {{ deal.province_state }}{% endif %}{% else %}—{% endif %}
+          </td>
+          <td>
+            <span class="badge badge-{{ deal.status }}">{{ deal.status.title() }}</span>
+          </td>
+          <td style="font-weight:600; color:{% if outputs.get('profit', outputs.get('wholesale_profit', 0)) > 0 %}var(--success){% else %}var(--danger){% endif %};">
+            {% set profit = outputs.get('profit', outputs.get('wholesale_profit', outputs.get('cash_flow', 0))) %}
+            ${{ '{:,.0f}'.format(profit) }}
+          </td>
+          <td style="font-size:13px; color:var(--text-secondary);">
+            {% set roi = outputs.get('roi', outputs.get('cap_rate', outputs.get('coc_return', 0))) %}
+            {{ '{:.1f}'.format(roi) }}%
+          </td>
+          <td style="font-size:13px; color:var(--text-muted);">
+            {{ deal.updated_at.strftime('%b %d, %Y') }}
+          </td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <a href="{{ url_for('deals.edit_deal', deal_id=deal.id) }}"
+                 class="btn btn-ghost btn-sm" title="Edit">
+                <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+              </a>
+              <form method="POST" action="{{ url_for('deals.delete_deal', deal_id=deal.id) }}"
+                    style="display:inline;"
+                    onsubmit="return confirm('Delete this deal? This cannot be undone.')">
+                <button type="submit" class="btn btn-ghost btn-sm"
+                        style="color:var(--danger);" title="Delete">
+                  <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Table Footer -->
+  <div style="padding:14px 20px; border-top:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between;">
+    <span style="font-size:13px; color:var(--text-muted);">{{ deals|length }} deal{{ 's' if deals|length != 1 }}</span>
+  </div>
+
+  {% else %}
+  <div class="empty-state" style="padding:80px 40px;">
+    <div class="empty-state-icon" style="width:72px; height:72px;">
+      <i data-lucide="trending-up" style="width:32px; height:32px;"></i>
+    </div>
+    <div class="empty-state-title">No deals found</div>
+    <div class="empty-state-text">
+      {% if search or status_filter != 'all' or strategy_filter != 'all' %}
+        No deals match your current filters. Try adjusting your search.
+      {% else %}
+        Start by analyzing your first real estate deal
+      {% endif %}
+    </div>
+    <a href="{{ url_for('deals.new_deal') }}" class="btn btn-primary">
+      <i data-lucide="plus" style="width:16px; height:16px;"></i>
+      Analyze a Deal
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function applyFilter(select, param) {
+  const url = new URL(window.location.href);
+  url.searchParams.set(param, select.value);
+  window.location.href = url.toString();
+}
+
+function filterDeals() {
+  const input = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('.deal-row').forEach(function(row) {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(input) ? '' : 'none';
+  });
+}
+</script>
 {% endblock %}

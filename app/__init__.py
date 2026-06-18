@@ -39,6 +39,16 @@ def create_app(config_name=None):
     upload_folder = app.config.get('UPLOAD_FOLDER', 'app/static/uploads')
     os.makedirs(upload_folder, exist_ok=True)
 
+    # Register custom Jinja filters
+    import json as _json
+
+    @app.template_filter('from_json')
+    def from_json_filter(value):
+        try:
+            return _json.loads(value) if value else {}
+        except Exception:
+            return {}
+
     # Register blueprints
     from app.auth import auth as auth_blueprint
     app.register_blueprint(auth_blueprint, url_prefix='/auth')

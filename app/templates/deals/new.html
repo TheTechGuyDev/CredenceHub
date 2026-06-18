@@ -1,5 +1,143 @@
 {% extends "layout.html" %}
 {% block page_title %}New Deal{% endblock %}
+{% block page_subtitle %}Choose a strategy to get started{% endblock %}
+
 {% block content %}
-<p style="color:var(--text-muted);">New deal form coming soon.</p>
+
+<div style="max-width:720px; margin:0 auto;">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" action="{{ url_for('deals.new_deal') }}">
+
+    <!-- Strategy Selector -->
+    <div class="card mb-24">
+      <div class="card-header">
+        <span class="card-title">Select Investment Strategy</span>
+      </div>
+      <div class="card-body">
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;" id="strategyGrid">
+
+          {% for strategy, label, icon, desc, color in [
+            ('wholesale', 'Wholesale', 'tag', 'Quick flip, assign contract', '#2e7d32'),
+            ('fix_flip', 'Fix & Flip', 'hammer', 'Buy, renovate and sell', '#e65100'),
+            ('brrrr', 'BRRRR', 'repeat', 'Buy, Rehab, Rent, Refinance', '#1565c0'),
+            ('construction', 'New Construction', 'building-2', 'Ground-up development', '#6a1b9a'),
+            ('commercial', 'Commercial', 'landmark', 'Income-producing property', '#283593')
+          ] %}
+          <label style="cursor:pointer;">
+            <input type="radio" name="strategy" value="{{ strategy }}"
+                   style="display:none;" required
+                   onchange="selectStrategy('{{ strategy }}')" />
+            <div class="strategy-card" id="strategy-{{ strategy }}"
+                 style="padding:18px; border:2px solid var(--border-color); border-radius:var(--radius-md); text-align:center; transition:all 0.2s;"
+                 onclick="selectStrategy('{{ strategy }}')">
+              <div style="width:44px; height:44px; background:{{ color }}22; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
+                <i data-lucide="{{ icon }}" style="width:20px; height:20px; color:{{ color }};"></i>
+              </div>
+              <div style="font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">{{ label }}</div>
+              <div style="font-size:11px; color:var(--text-muted);">{{ desc }}</div>
+            </div>
+          </label>
+          {% endfor %}
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Deal Details -->
+    <div class="card mb-24">
+      <div class="card-header">
+        <span class="card-title">Deal Details</span>
+      </div>
+      <div class="card-body">
+
+        <div class="form-group">
+          <label class="form-label">Deal Name <span style="color:var(--danger);">*</span></label>
+          <input type="text" name="name" class="form-control"
+                 placeholder="e.g. 123 Main Street Deal" required />
+          <p class="form-text">Give this deal a memorable name</p>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Property Address</label>
+            <input type="text" name="address" class="form-control"
+                   placeholder="123 Main Street" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">City</label>
+            <input type="text" name="city" class="form-control"
+                   placeholder="Toronto" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Province / State</label>
+          <select name="province_state" class="form-control">
+            <option value="">Select province/state</option>
+            <optgroup label="Canada">
+              <option>Alberta</option>
+              <option>British Columbia</option>
+              <option>Manitoba</option>
+              <option>Ontario</option>
+              <option>Quebec</option>
+            </optgroup>
+            <optgroup label="USA">
+              <option>Arizona</option>
+              <option>California</option>
+              <option>Florida</option>
+              <option>Georgia</option>
+              <option>Illinois</option>
+              <option>New York</option>
+              <option>Texas</option>
+              <option>Washington</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-control" rows="3"
+                    placeholder="Any initial notes about this deal..."></textarea>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; justify-content:flex-end;">
+      <a href="{{ url_for('deals.index') }}" class="btn btn-outline">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+        Create Deal & Enter Numbers
+      </button>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectStrategy(strategy) {
+  document.querySelectorAll('.strategy-card').forEach(function(card) {
+    card.style.borderColor = 'var(--border-color)';
+    card.style.background = 'transparent';
+  });
+  const selected = document.getElementById('strategy-' + strategy);
+  if (selected) {
+    selected.style.borderColor = 'var(--navy)';
+    selected.style.background = 'rgba(15,45,94,0.05)';
+  }
+  const radio = document.querySelector('input[name="strategy"][value="' + strategy + '"]');
+  if (radio) radio.checked = true;
+}
+</script>
 {% endblock %}

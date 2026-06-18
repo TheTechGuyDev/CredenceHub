@@ -1,0 +1,504 @@
+{% extends "layout.html" %}
+{% block page_title %}{{ deal.name }}{% endblock %}
+{% block page_subtitle %}{{ deal.strategy.replace('_', ' ').title() }} Analysis{% endblock %}
+
+{% block content %}
+
+<div style="display:grid; grid-template-columns:1fr 320px; gap:20px; align-items:start;">
+
+  <!-- Left: Input Form -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Deal Info -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Deal Information</span>
+        <span class="badge badge-{{ deal.status }}">{{ deal.status.title() }}</span>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('deals.edit_deal', deal_id=deal.id) }}" id="dealForm">
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Deal Name</label>
+              <input type="text" name="name" class="form-control" value="{{ deal.name }}" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select name="status" class="form-control">
+                <option value="active" {% if deal.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="archived" {% if deal.status == 'archived' %}selected{% endif %}>Archived</option>
+                <option value="sold" {% if deal.status == 'sold' %}selected{% endif %}>Sold</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Address</label>
+              <input type="text" name="address" class="form-control" value="{{ deal.address or '' }}" placeholder="123 Main Street" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">City</label>
+              <input type="text" name="city" class="form-control" value="{{ deal.city or '' }}" placeholder="Toronto" />
+            </div>
+          </div>
+
+          <!-- Strategy-specific inputs -->
+          <div style="border-top:1px solid var(--border-color); margin:16px 0; padding-top:16px;">
+            <h4 style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:16px;">
+              Financial Inputs —
+              <span style="color:var(--navy);">{{ deal.strategy.replace('_', ' ').title() }}</span>
+            </h4>
+
+            {% if deal.strategy == 'wholesale' %}
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Purchase Price ($)</label>
+                <input type="number" name="input_purchase_price" class="form-control calc-input"
+                       value="{{ inputs.get('purchase_price', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Assignment Fee ($)</label>
+                <input type="number" name="input_assignment_fee" class="form-control calc-input"
+                       value="{{ inputs.get('assignment_fee', '') }}" placeholder="0" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">After Repair Value — ARV ($)</label>
+                <input type="number" name="input_arv" class="form-control calc-input"
+                       value="{{ inputs.get('arv', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Estimated Repair Cost ($)</label>
+                <input type="number" name="input_repair_cost" class="form-control calc-input"
+                       value="{{ inputs.get('repair_cost', '') }}" placeholder="0" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Closing Costs ($)</label>
+                <input type="number" name="input_closing_costs" class="form-control calc-input"
+                       value="{{ inputs.get('closing_costs', 3000) }}" placeholder="3000" step="500" />
+              </div>
+            </div>
+
+            {% elif deal.strategy == 'fix_flip' %}
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Purchase Price ($)</label>
+                <input type="number" name="input_purchase_price" class="form-control calc-input"
+                       value="{{ inputs.get('purchase_price', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Rehab Cost ($)</label>
+                <input type="number" name="input_rehab_cost" class="form-control calc-input"
+                       value="{{ inputs.get('rehab_cost', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">After Repair Value — ARV ($)</label>
+                <input type="number" name="input_arv" class="form-control calc-input"
+                       value="{{ inputs.get('arv', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Hold Period (months)</label>
+                <input type="number" name="input_hold_months" class="form-control calc-input"
+                       value="{{ inputs.get('hold_months', 6) }}" placeholder="6" step="1" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Financing Method</label>
+                <select name="input_financing_method" class="form-control calc-input">
+                  <option value="cash" {% if inputs.get('financing_method') == 'cash' %}selected{% endif %}>Cash</option>
+                  <option value="private" {% if inputs.get('financing_method') == 'private' %}selected{% endif %}>Private Money</option>
+                  <option value="hard_money" {% if inputs.get('financing_method') == 'hard_money' %}selected{% endif %}>Hard Money</option>
+                  <option value="bank" {% if inputs.get('financing_method') == 'bank' %}selected{% endif %}>Bank Loan</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Loan Amount ($)</label>
+                <input type="number" name="input_loan_amount" class="form-control calc-input"
+                       value="{{ inputs.get('loan_amount', 0) }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Interest Rate (%)</label>
+                <input type="number" name="input_interest_rate" class="form-control calc-input"
+                       value="{{ inputs.get('interest_rate', 0) }}" placeholder="0" step="0.25" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Selling Costs (%)</label>
+                <input type="number" name="input_selling_costs_pct" class="form-control calc-input"
+                       value="{{ inputs.get('selling_costs_pct', 8) }}" placeholder="8" step="0.5" />
+              </div>
+            </div>
+
+            {% elif deal.strategy == 'brrrr' %}
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Purchase Price ($)</label>
+                <input type="number" name="input_purchase_price" class="form-control calc-input"
+                       value="{{ inputs.get('purchase_price', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Rehab Cost ($)</label>
+                <input type="number" name="input_rehab_cost" class="form-control calc-input"
+                       value="{{ inputs.get('rehab_cost', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">ARV After Repair ($)</label>
+                <input type="number" name="input_arv" class="form-control calc-input"
+                       value="{{ inputs.get('arv', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Refinance LTV (%)</label>
+                <input type="number" name="input_refinance_ltv" class="form-control calc-input"
+                       value="{{ inputs.get('refinance_ltv', 75) }}" placeholder="75" step="5" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Monthly Rent ($)</label>
+                <input type="number" name="input_monthly_rent" class="form-control calc-input"
+                       value="{{ inputs.get('monthly_rent', '') }}" placeholder="0" step="50" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Monthly Expenses ($)</label>
+                <input type="number" name="input_monthly_expenses" class="form-control calc-input"
+                       value="{{ inputs.get('monthly_expenses', '') }}" placeholder="0" step="50" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Interest Rate (%)</label>
+                <input type="number" name="input_interest_rate" class="form-control calc-input"
+                       value="{{ inputs.get('interest_rate', 6) }}" placeholder="6" step="0.25" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Loan Term (years)</label>
+                <input type="number" name="input_loan_term_years" class="form-control calc-input"
+                       value="{{ inputs.get('loan_term_years', 25) }}" placeholder="25" step="5" />
+              </div>
+            </div>
+
+            {% elif deal.strategy == 'construction' %}
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Land Cost ($)</label>
+                <input type="number" name="input_land_cost" class="form-control calc-input"
+                       value="{{ inputs.get('land_cost', '') }}" placeholder="0" step="5000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Construction Cost ($)</label>
+                <input type="number" name="input_construction_cost" class="form-control calc-input"
+                       value="{{ inputs.get('construction_cost', '') }}" placeholder="0" step="5000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Soft Costs ($)</label>
+                <input type="number" name="input_soft_costs" class="form-control calc-input"
+                       value="{{ inputs.get('soft_costs', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Financing Costs ($)</label>
+                <input type="number" name="input_financing_costs" class="form-control calc-input"
+                       value="{{ inputs.get('financing_costs', 0) }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">ARV / Sale Price ($)</label>
+                <input type="number" name="input_arv" class="form-control calc-input"
+                       value="{{ inputs.get('arv', '') }}" placeholder="0" step="5000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Floor Area (sq ft)</label>
+                <input type="number" name="input_floor_area" class="form-control calc-input"
+                       value="{{ inputs.get('floor_area', '') }}" placeholder="0" step="100" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Contingency (%)</label>
+                <input type="number" name="input_contingency_pct" class="form-control calc-input"
+                       value="{{ inputs.get('contingency_pct', 10) }}" placeholder="10" step="1" />
+              </div>
+            </div>
+
+            {% elif deal.strategy == 'commercial' %}
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Purchase Price ($)</label>
+                <input type="number" name="input_purchase_price" class="form-control calc-input"
+                       value="{{ inputs.get('purchase_price', '') }}" placeholder="0" step="10000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Gross Annual Income ($)</label>
+                <input type="number" name="input_gross_income" class="form-control calc-input"
+                       value="{{ inputs.get('gross_income', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Operating Expenses ($)</label>
+                <input type="number" name="input_operating_expenses" class="form-control calc-input"
+                       value="{{ inputs.get('operating_expenses', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Vacancy Rate (%)</label>
+                <input type="number" name="input_vacancy_rate" class="form-control calc-input"
+                       value="{{ inputs.get('vacancy_rate', 5) }}" placeholder="5" step="1" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Loan Amount ($)</label>
+                <input type="number" name="input_loan_amount" class="form-control calc-input"
+                       value="{{ inputs.get('loan_amount', 0) }}" placeholder="0" step="10000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Interest Rate (%)</label>
+                <input type="number" name="input_interest_rate" class="form-control calc-input"
+                       value="{{ inputs.get('interest_rate', 6) }}" placeholder="6" step="0.25" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Loan Term (years)</label>
+                <input type="number" name="input_loan_term_years" class="form-control calc-input"
+                       value="{{ inputs.get('loan_term_years', 25) }}" placeholder="25" step="5" />
+              </div>
+            </div>
+            {% endif %}
+
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-control" rows="2"
+                      placeholder="Deal notes...">{{ deal.notes or '' }}</textarea>
+          </div>
+
+          <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+            <a href="{{ url_for('deals.index') }}" class="btn btn-outline">
+              <i data-lucide="arrow-left" style="width:15px; height:15px;"></i>
+              Back
+            </a>
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="save" style="width:15px; height:15px;"></i>
+              Save & Calculate
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right: Results Panel -->
+  <div style="display:flex; flex-direction:column; gap:16px; position:sticky; top:84px;">
+
+    <!-- Results Card -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Results</span>
+        <span class="badge badge-{{ deal.strategy }}">{{ deal.strategy.replace('_', ' ').title() }}</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+
+        {% if outputs %}
+
+          {% if deal.strategy == 'wholesale' %}
+          {% set items = [
+            ('Wholesale Profit', outputs.get('wholesale_profit', 0), True, True),
+            ('Max Offer (70% Rule)', outputs.get('max_offer_70', 0), True, False),
+            ('Max Offer (75% Rule)', outputs.get('max_offer_75', 0), True, False),
+            ('Buyer All-In Cost', outputs.get('buyer_all_in', 0), True, False),
+            ('Buyer Profit', outputs.get('buyer_profit', 0), True, True),
+            ('Buyer ROI', outputs.get('buyer_roi', 0), False, False),
+          ] %}
+
+          {% elif deal.strategy == 'fix_flip' %}
+          {% set items = [
+            ('Projected Profit', outputs.get('profit', 0), True, True),
+            ('Total Investment', outputs.get('total_investment', 0), True, False),
+            ('ROI', outputs.get('roi', 0), False, False),
+            ('Annualized ROI', outputs.get('annualized_roi', 0), False, False),
+            ('Cash-on-Cash Return', outputs.get('coc_return', 0), False, False),
+            ('Break-Even ARV', outputs.get('break_even_arv', 0), True, False),
+            ('Selling Costs', outputs.get('selling_costs', 0), True, False),
+            ('Holding Costs', outputs.get('holding_costs', 0), True, False),
+          ] %}
+
+          {% elif deal.strategy == 'brrrr' %}
+          {% set items = [
+            ('Refinance Amount', outputs.get('refinance_amount', 0), True, False),
+            ('Capital Recycled', outputs.get('capital_recycled', 0), True, True),
+            ('Capital Left In Deal', outputs.get('capital_left_in', 0), True, False),
+            ('Equity In Deal', outputs.get('equity_in_deal', 0), True, True),
+            ('Mortgage Payment', outputs.get('mortgage_payment', 0), True, False),
+            ('Monthly Cash Flow', outputs.get('monthly_cashflow', 0), True, True),
+            ('Annual Cash Flow', outputs.get('annual_cashflow', 0), True, False),
+            ('Cash-on-Cash Return', outputs.get('coc_return', 0), False, False),
+          ] %}
+
+          {% elif deal.strategy == 'construction' %}
+          {% set items = [
+            ('Total Project Cost', outputs.get('total_cost', 0), True, False),
+            ('Development Profit', outputs.get('profit', 0), True, True),
+            ('ROI', outputs.get('roi', 0), False, False),
+            ('Profit Margin', outputs.get('profit_margin', 0), False, False),
+            ('Cost Per Sq Ft', outputs.get('cost_per_sqft', 0), True, False),
+            ('Contingency', outputs.get('contingency', 0), True, False),
+          ] %}
+
+          {% elif deal.strategy == 'commercial' %}
+          {% set items = [
+            ('Net Operating Income', outputs.get('noi', 0), True, False),
+            ('Cap Rate', outputs.get('cap_rate', 0), False, True),
+            ('Cash Flow', outputs.get('cash_flow', 0), True, True),
+            ('Cash-on-Cash Return', outputs.get('coc_return', 0), False, False),
+            ('Gross Rent Multiplier', outputs.get('grm', 0), False, False),
+            ('DSCR', outputs.get('dscr', 0), False, False),
+            ('Mortgage Payment', outputs.get('mortgage_payment', 0), True, False),
+            ('5-Year IRR', outputs.get('irr_5yr', 0), False, True),
+          ] %}
+          {% endif %}
+
+          {% for label, value, is_currency, is_highlight in items %}
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-bottom:1px solid var(--border-color); {% if is_highlight %}background:var(--bg-primary);{% endif %}">
+            <span style="font-size:13px; color:var(--text-secondary);">{{ label }}</span>
+            <span style="font-size:14px; font-weight:{% if is_highlight %}700{% else %}600{% endif %}; color:{% if is_highlight and value > 0 %}var(--success){% elif is_highlight and value < 0 %}var(--danger){% else %}var(--text-primary){% endif %};">
+              {% if is_currency %}
+                ${{ '{:,.0f}'.format(value) }}
+              {% else %}
+                {{ '{:.2f}'.format(value) }}%
+              {% endif %}
+            </span>
+          </div>
+          {% endfor %}
+
+        {% else %}
+        <div class="empty-state" style="padding:40px 20px;">
+          <div class="empty-state-icon">
+            <i data-lucide="calculator" style="width:24px; height:24px;"></i>
+          </div>
+          <div class="empty-state-title" style="font-size:14px;">Enter numbers to calculate</div>
+          <div class="empty-state-text" style="font-size:12px;">Fill in the inputs and click Save & Calculate</div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- Waterfall Chart -->
+    {% if outputs %}
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Capital Flow</span>
+      </div>
+      <div class="card-body">
+        <canvas id="waterfallChart" height="180"></canvas>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Scenarios -->
+    {% if scenarios %}
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Saved Scenarios</span>
+        <span class="badge badge-navy">{{ scenarios|length }}</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        {% for scenario in scenarios %}
+        <div style="padding:12px 16px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:13px; font-weight:500; color:var(--text-primary);">{{ scenario.name }}</span>
+          <span style="font-size:12px; color:var(--text-muted);">{{ scenario.created_at.strftime('%b %d') }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+{% if outputs %}
+// Waterfall Chart
+const ctx = document.getElementById('waterfallChart');
+if (ctx) {
+  {% if deal.strategy == 'wholesale' %}
+  const labels = ['Purchase', 'Repairs', 'Assignment', 'ARV'];
+  const data = [
+    {{ inputs.get('purchase_price', 0) }},
+    {{ inputs.get('repair_cost', 0) }},
+    {{ outputs.get('assignment_fee', inputs.get('assignment_fee', 0)) }},
+    {{ inputs.get('arv', 0) }}
+  ];
+  {% elif deal.strategy == 'fix_flip' %}
+  const labels = ['Purchase', 'Rehab', 'Holding', 'Selling Costs', 'Sale Price'];
+  const data = [
+    {{ inputs.get('purchase_price', 0) }},
+    {{ inputs.get('rehab_cost', 0) }},
+    {{ outputs.get('holding_costs', 0) }},
+    {{ outputs.get('selling_costs', 0) }},
+    {{ inputs.get('arv', 0) }}
+  ];
+  {% elif deal.strategy == 'brrrr' %}
+  const labels = ['Purchase', 'Rehab', 'ARV', 'Refinance', 'Left In'];
+  const data = [
+    {{ inputs.get('purchase_price', 0) }},
+    {{ inputs.get('rehab_cost', 0) }},
+    {{ inputs.get('arv', 0) }},
+    {{ outputs.get('refinance_amount', 0) }},
+    {{ outputs.get('capital_left_in', 0) }}
+  ];
+  {% elif deal.strategy == 'construction' %}
+  const labels = ['Land', 'Construction', 'Soft Costs', 'Contingency', 'Sale Price'];
+  const data = [
+    {{ inputs.get('land_cost', 0) }},
+    {{ inputs.get('construction_cost', 0) }},
+    {{ inputs.get('soft_costs', 0) }},
+    {{ outputs.get('contingency', 0) }},
+    {{ inputs.get('arv', 0) }}
+  ];
+  {% elif deal.strategy == 'commercial' %}
+  const labels = ['Purchase', 'NOI', 'Debt Service', 'Cash Flow'];
+  const data = [
+    {{ inputs.get('purchase_price', 0) }},
+    {{ outputs.get('noi', 0) }},
+    {{ outputs.get('annual_debt_service', 0) }},
+    {{ outputs.get('cash_flow', 0) }}
+  ];
+  {% endif %}
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: data.map(function(v) {
+          return v >= 0 ? 'rgba(15,45,94,0.8)' : 'rgba(229,62,62,0.8)';
+        }),
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(v) { return '$' + (v/1000).toFixed(0) + 'k'; },
+            font: { size: 10 }
+          },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+{% endif %}
+</script>
+{% endblock %}
