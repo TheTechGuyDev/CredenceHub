@@ -18,7 +18,6 @@ def make_shell_context():
 
 @app.cli.command('init-db')
 def init_db():
-    """Initialize the database and create all tables."""
     with app.app_context():
         db.create_all()
         print('Database tables created successfully.')
@@ -26,11 +25,22 @@ def init_db():
 
 @app.cli.command('seed-db')
 def seed_db():
-    """Seed the database with initial city cost data."""
     from app.utils.seed_data import seed_city_data
     with app.app_context():
         seed_city_data()
         print('City cost data seeded successfully.')
+
+
+# Auto-create tables on startup for Railway
+with app.app_context():
+    try:
+        db.create_all()
+        from app.models import CityData
+        if CityData.query.count() == 0:
+            from app.utils.seed_data import seed_city_data
+            seed_city_data()
+    except Exception as e:
+        print(f'DB init error: {e}')
 
 
 if __name__ == '__main__':
