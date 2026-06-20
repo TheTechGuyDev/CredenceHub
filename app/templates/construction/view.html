@@ -1,0 +1,637 @@
+{% extends "layout.html" %}
+{% block page_title %}{{ project.name }}{% endblock %}
+{% block page_subtitle %}{{ project.building_type.replace('_', ' ').title() }} — {{ project.city }}, {{ project.province_state }}{% endblock %}
+
+{% block content %}
+
+<!-- Top Action Bar -->
+<div class="flex-between mb-24">
+  <div style="display:flex; gap:10px; align-items:center;">
+    <a href="{{ url_for('construction.index') }}" class="btn btn-outline btn-sm">
+      <i data-lucide="arrow-left" style="width:14px; height:14px;"></i>
+      Back
+    </a>
+    <span class="badge badge-navy">{{ project.finish_level.title() }} Finish</span>
+    <span class="badge badge-active">{{ project.stories }} {{ 'Story' if project.stories == 1 else 'Stories' }}</span>
+    <span class="badge badge-archived">{{ '{:,.0f}'.format(project.floor_area_sqft) }} sq ft</span>
+  </div>
+  <div style="display:flex; gap:8px;">
+    <button class="btn btn-outline btn-sm" onclick="shareProject()">
+      <i data-lucide="share-2" style="width:14px; height:14px;"></i>
+      Share
+    </button>
+    <button class="btn btn-primary btn-sm" onclick="window.print()">
+      <i data-lucide="printer" style="width:14px; height:14px;"></i>
+      Print Report
+    </button>
+  </div>
+</div>
+
+<!-- Tab Navigation -->
+<div style="display:flex; gap:4px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:6px; margin-bottom:24px; overflow-x:auto;">
+  {% for tab_id, tab_icon, tab_label in [
+    ('tab-setup', 'settings', '1. Project Setup'),
+    ('tab-summary', 'circle-dollar-sign', '2. Cost Summary'),
+    ('tab-bom', 'list', '3. Bill of Materials'),
+    ('tab-permits', 'file-check', '4. Permits'),
+    ('tab-audit', 'history', '5. Audit Log'),
+  ] %}
+  <button class="tab-btn" id="btn-{{ tab_id }}"
+          onclick="switchTab('{{ tab_id }}')"
+          style="display:flex; align-items:center; gap:8px; padding:9px 16px; border:none; border-radius:var(--radius-sm); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all 0.2s; background:transparent; color:var(--text-muted);">
+    <i data-lucide="{{ tab_icon }}" style="width:14px; height:14px;"></i>
+    {{ tab_label }}
+  </button>
+  {% endfor %}
+</div>
+
+<!-- ── TAB 1: Project Setup ── -->
+<div id="tab-setup" class="tab-panel">
+  <div style="max-width:700px;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Project Details</span>
+      </div>
+      <div class="card-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          {% for label, value in [
+            ('Project Name', project.name),
+            ('City', project.city + ', ' + project.province_state),
+            ('Country', '🇨🇦 Canada' if project.country == 'CA' else '🇺🇸 United States'),
+            ('Building Type', project.building_type.replace('_',' ').title()),
+            ('Number of Stories', project.stories|string),
+            ('Total Floor Area', '{:,.0f} sq ft'.format(project.floor_area_sqft)),
+            ('Foundation Type', project.foundation_type.replace('_',' ').title()),
+            ('Construction Type', project.construction_type.replace('_',' ').title()),
+            ('Finish Level', project.finish_level.title()),
+            ('Contingency', '{}%'.format(project.contingency_pct|int)),
+          ] %}
+          <div style="padding:14px; background:var(--bg-primary); border-radius:var(--radius-sm);">
+            <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:6px;">{{ label }}</div>
+            <div style="font-size:14px; font-weight:600; color:var(--text-primary);">{{ value }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {% if city_data %}
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header">
+        <span class="card-title">Regional Benchmarks — {{ project.city }}</span>
+      </div>
+      <div class="card-body">
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+          {% for label, value in [
+            ('Labor Index', '{:.2f}x'.format(city_data.labor_index)),
+            ('Material Index', '{:.2f}x'.format(city_data.material_index)),
+            ('Land Cost/sqft', '${:.0f}'.format(city_data.land_cost_sqft)),
+            ('SFH Basic', '${}/sqft'.format(city_data.cost_sfh_basic)),
+            ('SFH Standard', '${}/sqft'.format(city_data.cost_sfh_standard)),
+            ('SFH Premium', '${}/sqft'.format(city_data.cost_sfh_premium)),
+          ] %}
+          <div style="padding:12px; background:var(--bg-primary); border-radius:var(--radius-sm); text-align:center;">
+            <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">{{ label }}</div>
+            <div style="font-size:16px; font-weight:700; color:var(--navy);">{{ value }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── TAB 2: Cost Summary ── -->
+<div id="tab-summary" class="tab-panel" style="display:none;">
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid mb-24">
+    <div class="kpi-card">
+      <div class="kpi-icon navy">
+        <i data-lucide="dollar-sign" style="width:22px; height:22px;"></i>
+      </div>
+      <div class="kpi-data">
+        <div class="kpi-value">${{ '{:,.0f}'.format(grand_total) }}</div>
+        <div class="kpi-label">Total Project Cost</div>
+        <div class="kpi-change up">All-in estimate</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon gold">
+        <i data-lucide="ruler" style="width:22px; height:22px;"></i>
+      </div>
+      <div class="kpi-data">
+        <div class="kpi-value">${{ '{:,.0f}'.format(cost_per_sqft) }}</div>
+        <div class="kpi-label">Cost Per Sq Ft</div>
+        <div class="kpi-change up">{{ '{:,.0f}'.format(project.floor_area_sqft) }} sq ft</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon success">
+        <i data-lucide="hammer" style="width:22px; height:22px;"></i>
+      </div>
+      <div class="kpi-data">
+        <div class="kpi-value">${{ '{:,.0f}'.format(hard_costs) }}</div>
+        <div class="kpi-label">Hard Costs</div>
+        <div class="kpi-change up">Materials + Labour</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon info">
+        <i data-lucide="file-check" style="width:22px; height:22px;"></i>
+      </div>
+      <div class="kpi-data">
+        <div class="kpi-value">${{ '{:,.0f}'.format(soft_costs) }}</div>
+        <div class="kpi-label">Soft Costs</div>
+        <div class="kpi-change up">Permits & fees</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start;">
+
+    <!-- Cost Breakdown Table -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Cost Breakdown</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        {% for label, value, pct, is_highlight in [
+          ('Land Cost', land_cost, land_cost/grand_total*100 if grand_total > 0 else 0, False),
+          ('Materials', total_materials, total_materials/grand_total*100 if grand_total > 0 else 0, False),
+          ('Labour (estimated)', labor_cost, labor_cost/grand_total*100 if grand_total > 0 else 0, False),
+          ('Hard Costs Total', hard_costs, hard_costs/grand_total*100 if grand_total > 0 else 0, True),
+          ('Permits & Fees', soft_costs, soft_costs/grand_total*100 if grand_total > 0 else 0, False),
+          ('Contingency ({}%)'.format(project.contingency_pct|int), contingency, contingency/grand_total*100 if grand_total > 0 else 0, False),
+        ] %}
+        <div style="padding:14px 20px; border-bottom:1px solid var(--border-color); {% if is_highlight %}background:var(--bg-primary);{% endif %}">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:13px; color:var(--text-secondary); {% if is_highlight %}font-weight:700;{% endif %}">{{ label }}</span>
+            <span style="font-size:14px; font-weight:700; color:{% if is_highlight %}var(--navy){% else %}var(--text-primary){% endif %};">${{ '{:,.0f}'.format(value) }}</span>
+          </div>
+          <div style="height:4px; background:var(--border-color); border-radius:2px; overflow:hidden;">
+            <div style="height:100%; width:{{ '{:.1f}'.format(pct) }}%; background:{% if is_highlight %}var(--navy){% else %}var(--gold){% endif %}; border-radius:2px;"></div>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">{{ '{:.1f}'.format(pct) }}% of total</div>
+        </div>
+        {% endfor %}
+
+        <!-- Grand Total -->
+        <div style="padding:18px 20px; background:var(--navy); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:rgba(255,255,255,0.7); margin-bottom:4px;">Grand Total</div>
+            <div style="font-size:12px; color:rgba(255,255,255,0.5);">${{ '{:,.0f}'.format(cost_per_sqft) }}/sq ft</div>
+          </div>
+          <div style="font-size:28px; font-weight:800; color:var(--gold);">${{ '{:,.0f}'.format(grand_total) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Cost Breakdown</span>
+        </div>
+        <div class="card-body">
+          <canvas id="costPieChart" height="200"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">By Category</span>
+        </div>
+        <div class="card-body">
+          <canvas id="categoryBarChart" height="240"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── TAB 3: Bill of Materials ── -->
+<div id="tab-bom" class="tab-panel" style="display:none;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Bill of Materials</span>
+      <span style="font-size:12px; color:var(--text-muted);">Click any quantity or unit cost to edit</span>
+    </div>
+
+    {% for category_name, category_data in categories.items() %}
+    <div style="border-bottom:2px solid var(--border-color);">
+
+      <!-- Category Header -->
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; background:var(--bg-primary); cursor:pointer;"
+           onclick="toggleCategory('cat-{{ loop.index }}', {{ loop.index }})">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <i data-lucide="chevron-down" style="width:16px; height:16px; color:var(--text-muted); transition:transform 0.2s;" id="chevron-{{ loop.index }}"></i>
+          <span style="font-size:14px; font-weight:700; color:var(--text-primary);">{{ category_name }}</span>
+          <span class="badge badge-navy" style="font-size:10px;">{{ category_data.bom_items|length }} items</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="text-align:right;">
+            <div style="font-size:12px; color:var(--text-muted);">{{ '{:.1f}'.format(category_data.subtotal / grand_total * 100) }}% of total</div>
+            <div style="font-size:15px; font-weight:700; color:var(--navy);">${{ '{:,.0f}'.format(category_data.subtotal) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Items -->
+      <div id="cat-{{ loop.index }}">
+        <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="background:var(--bg-secondary);">
+              <th style="padding:8px 20px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);">Item</th>
+              <th style="padding:8px 12px; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);">Quantity</th>
+              <th style="padding:8px 12px; text-align:center; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);">Unit</th>
+              <th style="padding:8px 12px; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);">Unit Cost</th>
+              <th style="padding:8px 20px; text-align:right; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);">Line Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in category_data.bom_items %}
+            <tr style="border-top:1px solid var(--border-color);" id="bom-row-{{ item.id }}">
+              <td style="padding:11px 20px; font-size:13px; color:var(--text-primary);">
+                {{ item.name }}
+                {% if item.is_overridden %}
+                <span style="font-size:10px; color:var(--gold-dark); font-weight:700; margin-left:6px; background:rgba(245,166,35,0.1); padding:2px 6px; border-radius:4px;">EDITED</span>
+                {% endif %}
+              </td>
+              <td style="padding:11px 12px; text-align:right;">
+                <input type="number"
+                       value="{{ item.quantity }}"
+                       style="width:80px; padding:5px 8px; border:1px solid var(--border-color); border-radius:4px; background:var(--bg-secondary); color:var(--text-primary); font-size:13px; text-align:right; outline:none;"
+                       onchange="updateBOMItem({{ item.id }}, 'quantity', this.value)"
+                       onfocus="this.style.borderColor='var(--navy)'"
+                       onblur="this.style.borderColor='var(--border-color)'"
+                       step="0.1" min="0" />
+              </td>
+              <td style="padding:11px 12px; text-align:center; font-size:12px; color:var(--text-muted);">{{ item.unit }}</td>
+              <td style="padding:11px 12px; text-align:right;">
+                <div style="display:flex; align-items:center; justify-content:flex-end; gap:2px;">
+                  <span style="font-size:12px; color:var(--text-muted);">$</span>
+                  <input type="number"
+                         value="{{ item.unit_cost }}"
+                         style="width:80px; padding:5px 8px; border:1px solid var(--border-color); border-radius:4px; background:var(--bg-secondary); color:var(--text-primary); font-size:13px; text-align:right; outline:none;"
+                         onchange="updateBOMItem({{ item.id }}, 'unit_cost', this.value)"
+                         onfocus="this.style.borderColor='var(--navy)'"
+                         onblur="this.style.borderColor='var(--border-color)'"
+                         step="0.01" min="0" />
+                </div>
+              </td>
+              <td style="padding:11px 20px; text-align:right; font-size:14px; font-weight:700; color:var(--text-primary);" id="line-total-{{ item.id }}">
+                ${{ '{:,.0f}'.format(item.quantity * item.unit_cost) }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--bg-primary);">
+              <td colspan="4" style="padding:10px 20px; font-size:13px; font-weight:700; color:var(--text-primary);">{{ category_name }} Subtotal</td>
+              <td style="padding:10px 20px; text-align:right; font-size:14px; font-weight:800; color:var(--navy);">${{ '{:,.0f}'.format(category_data.subtotal) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+
+    <!-- BOM Total -->
+    <div style="padding:20px; background:var(--navy); display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:14px; font-weight:700; color:rgba(255,255,255,0.8);">Total Materials Cost</span>
+      <span style="font-size:22px; font-weight:800; color:var(--gold);">${{ '{:,.0f}'.format(total_materials) }}</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── TAB 4: Permits ── -->
+<div id="tab-permits" class="tab-panel" style="display:none;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Permits & Required Documents</span>
+      <span style="font-size:13px; color:var(--text-muted);">{{ project.city }}, {{ project.province_state }}</span>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Permit / Document</th>
+            <th>Estimated Fee</th>
+            <th>Processing Time</th>
+            <th>Notes</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for permit in permit_items %}
+          <tr>
+            <td>
+              <div style="font-weight:600; color:var(--text-primary); font-size:13px;">{{ permit.name }}</div>
+            </td>
+            <td style="font-size:14px; font-weight:700; color:var(--navy);">${{ '{:,.0f}'.format(permit.estimated_fee) }}</td>
+            <td style="font-size:12px; color:var(--text-muted);">{{ permit.processing_time }}</td>
+            <td style="font-size:12px; color:var(--text-muted); max-width:240px;">{{ permit.notes }}</td>
+            <td>
+              {% if permit.is_required %}
+              <span class="badge badge-active">Required</span>
+              {% else %}
+              <span class="badge badge-archived">Optional</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr style="background:var(--bg-primary);">
+            <td style="padding:14px 16px; font-weight:700; color:var(--text-primary);">Total Required Permit Costs</td>
+            <td style="padding:14px 16px; font-weight:800; font-size:15px; color:var(--navy);">${{ '{:,.0f}'.format(total_permits) }}</td>
+            <td colspan="3"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Permit Timeline -->
+  <div class="card" style="margin-top:16px;">
+    <div class="card-header">
+      <span class="card-title">Permit Timeline Overview</span>
+    </div>
+    <div class="card-body">
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+        {% for label, value, color in [
+          ('Pre-Construction', '6-12 weeks', 'var(--navy)'),
+          ('During Construction', '1-2 weeks each', 'var(--gold-dark)'),
+          ('Post-Construction', '1-2 weeks', 'var(--success)'),
+        ] %}
+        <div style="padding:16px; background:var(--bg-primary); border-radius:var(--radius-md); border-left:4px solid {{ color }};">
+          <div style="font-size:12px; font-weight:700; color:{{ color }}; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">{{ label }}</div>
+          <div style="font-size:20px; font-weight:800; color:var(--text-primary);">{{ value }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 5: Audit Log ── -->
+<div id="tab-audit" class="tab-panel" style="display:none;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Audit Log</span>
+      <span style="font-size:12px; color:var(--text-muted);">All changes recorded</span>
+    </div>
+    {% if audit_logs %}
+    <div class="card-body" style="padding:0;">
+      {% for log in audit_logs %}
+      <div style="display:flex; align-items:flex-start; gap:14px; padding:14px 20px; border-bottom:1px solid var(--border-color);">
+        <div style="width:32px; height:32px; background:rgba(15,45,94,0.08); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
+          <i data-lucide="edit-3" style="width:14px; height:14px; color:var(--navy);"></i>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:13px; font-weight:600; color:var(--text-primary);">{{ log.action }}</div>
+          {% if log.details %}
+          <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">{{ log.details }}</div>
+          {% endif %}
+          <div style="font-size:11px; color:var(--text-muted); margin-top:5px;">
+            <i data-lucide="clock" style="width:11px; height:11px; vertical-align:middle;"></i>
+            {{ log.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:60px 20px;">
+      <div class="empty-state-icon">
+        <i data-lucide="history" style="width:28px; height:28px;"></i>
+      </div>
+      <div class="empty-state-title">No changes recorded yet</div>
+      <div class="empty-state-text">Edit BOM items or project details to see the audit trail here</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <span class="modal-title">Share Read-Only Report</span>
+      <button class="modal-close" onclick="closeModal('shareModal')">
+        <i data-lucide="x" style="width:18px; height:18px;"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px; color:var(--text-muted); margin-bottom:16px;">
+        Anyone with this link can view the full cost report without signing in. Perfect for sharing with clients or teammates.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Shareable Link</label>
+        <input type="text" id="modalShareLink" class="form-control" readonly style="font-size:12px;" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('shareModal')">Close</button>
+      <button class="btn btn-primary" onclick="copyModalLink()">
+        <i data-lucide="copy" style="width:15px; height:15px;"></i>
+        Copy Link
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+// ── Tab Management ──
+const TAB_ACTIVE_STYLE = {
+  background: 'var(--navy)',
+  color: '#ffffff',
+};
+const TAB_INACTIVE_STYLE = {
+  background: 'transparent',
+  color: 'var(--text-muted)',
+};
+
+function switchTab(tabId) {
+  // Hide all panels
+  document.querySelectorAll('.tab-panel').forEach(function(p) {
+    p.style.display = 'none';
+  });
+  // Reset all buttons
+  document.querySelectorAll('.tab-btn').forEach(function(b) {
+    b.style.background = TAB_INACTIVE_STYLE.background;
+    b.style.color = TAB_INACTIVE_STYLE.color;
+  });
+  // Show selected panel
+  const panel = document.getElementById(tabId);
+  if (panel) panel.style.display = 'block';
+  // Activate button
+  const btn = document.getElementById('btn-' + tabId);
+  if (btn) {
+    btn.style.background = TAB_ACTIVE_STYLE.background;
+    btn.style.color = TAB_ACTIVE_STYLE.color;
+  }
+  // Render charts if switching to summary tab
+  if (tabId === 'tab-summary') {
+    renderCharts();
+  }
+  localStorage.setItem('ch_construction_tab', tabId);
+}
+
+// Restore last tab
+const savedTab = localStorage.getItem('ch_construction_tab') || 'tab-summary';
+switchTab(savedTab);
+
+// ── Category Toggle ──
+function toggleCategory(id, index) {
+  const el = document.getElementById(id);
+  const chevron = document.getElementById('chevron-' + index);
+  if (!el) return;
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    if (chevron) chevron.style.transform = 'rotate(0deg)';
+  } else {
+    el.style.display = 'none';
+    if (chevron) chevron.style.transform = 'rotate(-90deg)';
+  }
+}
+
+// ── BOM Item Update ──
+function updateBOMItem(itemId, field, value) {
+  fetch('{{ url_for("construction.update_bom", project_id=project.id) }}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item_id: itemId, field: field, value: parseFloat(value) })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      const lineTotal = document.getElementById('line-total-' + itemId);
+      if (lineTotal) {
+        lineTotal.textContent = '$' + Math.round(data.line_total).toLocaleString();
+      }
+      showToast('Item updated', 'success');
+    }
+  })
+  .catch(function() {
+    showToast('Failed to update item', 'danger');
+  });
+}
+
+// ── Share Project ──
+function shareProject() {
+  fetch('{{ url_for("construction.share_project", project_id=project.id) }}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      document.getElementById('modalShareLink').value = data.url;
+      openModal('shareModal');
+    }
+  });
+}
+
+function copyModalLink() {
+  const input = document.getElementById('modalShareLink');
+  navigator.clipboard.writeText(input.value).then(function() {
+    showToast('Link copied to clipboard!', 'success');
+    closeModal('shareModal');
+  });
+}
+
+// ── Charts ──
+let chartsRendered = false;
+
+function renderCharts() {
+  if (chartsRendered) return;
+  chartsRendered = true;
+
+  const categoryLabels = [{% for name in categories.keys() %}'{{ name }}',{% endfor %}];
+  const categoryValues = [{% for data in categories.values() %}{{ data.subtotal|round|int }},{% endfor %}];
+
+  // Pie Chart
+  const pieCtx = document.getElementById('costPieChart');
+  if (pieCtx) {
+    new Chart(pieCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Land', 'Materials', 'Labour', 'Permits', 'Contingency'],
+        datasets: [{
+          data: [
+            {{ land_cost|round|int }},
+            {{ total_materials|round|int }},
+            {{ labor_cost|round|int }},
+            {{ soft_costs|round|int }},
+            {{ contingency|round|int }}
+          ],
+          backgroundColor: ['#0F2D5E','#F5A623','#38a169','#3182ce','#718096'],
+          borderWidth: 3,
+          borderColor: 'var(--bg-card)'
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: { size: 11 }, padding: 12 }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                const total = ctx.dataset.data.reduce(function(a,b){return a+b;},0);
+                const pct = ((ctx.parsed/total)*100).toFixed(1);
+                return ctx.label+': $'+ctx.parsed.toLocaleString()+' ('+pct+'%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Bar Chart
+  const barCtx = document.getElementById('categoryBarChart');
+  if (barCtx) {
+    new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: categoryLabels,
+        datasets: [{
+          data: categoryValues,
+          backgroundColor: 'rgba(15,45,94,0.8)',
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            ticks: {
+              callback: function(v) { return '$'+(v/1000).toFixed(0)+'k'; },
+              font: { size: 10 }
+            },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          },
+          y: {
+            ticks: { font: { size: 10 } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ project.name }} — Construction Cost Report | CredenceHub</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body data-theme="light" style="background:var(--bg-primary); min-height:100vh;">
+
+  <!-- Read-Only Banner -->
+  <div style="background:var(--navy); color:#fff; padding:10px 24px; display:flex; align-items:center; justify-content:between; gap:12px;">
+    <div style="display:flex; align-items:center; gap:10px; flex:1;">
+      <div style="width:28px; height:28px; background:var(--gold); border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11px; color:var(--navy);">CH</div>
+      <span style="font-size:14px; font-weight:600;">CredenceHub</span>
+      <span style="font-size:12px; color:rgba(255,255,255,0.5);">|</span>
+      <span style="font-size:12px; color:rgba(255,255,255,0.7);">Construction Cost Report</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.1); padding:6px 12px; border-radius:6px;">
+      <i data-lucide="eye" style="width:14px; height:14px; color:var(--gold);"></i>
+      <span style="font-size:12px; font-weight:600; color:var(--gold);">Read-Only View</span>
+    </div>
+  </div>
+
+  <!-- Report Content -->
+  <div style="max-width:1100px; margin:0 auto; padding:32px 24px;">
+
+    <!-- Report Header -->
+    <div style="margin-bottom:32px;">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px;">
+        <div>
+          <h1 style="font-size:28px; font-weight:800; color:var(--navy); margin-bottom:6px;">{{ project.name }}</h1>
+          <p style="font-size:14px; color:var(--text-muted);">
+            {{ project.building_type.replace('_', ' ').title() }} —
+            {{ project.city }}, {{ project.province_state }}, {{ project.country }} —
+            {{ '{:,.0f}'.format(project.floor_area_sqft) }} sq ft —
+            {{ project.finish_level.title() }} Finish
+          </p>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">Generated</div>
+          <div style="font-size:13px; font-weight:600; color:var(--text-primary);">{{ project.created_at.strftime('%B %d, %Y') }}</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Powered by CredenceHub</div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div style="height:4px; background:linear-gradient(90deg, var(--navy) 0%, var(--gold) 100%); border-radius:2px;"></div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px;">
+      {% for label, value, suffix in [
+        ('Total Project Cost', '${:,.0f}'.format(grand_total), ''),
+        ('Cost Per Sq Ft', '${:,.0f}'.format(cost_per_sqft), '/sqft'),
+        ('Hard Costs', '${:,.0f}'.format(hard_costs), ''),
+        ('Soft Costs', '${:,.0f}'.format(soft_costs), ''),
+      ] %}
+      <div style="background:#fff; border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm);">
+        <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:8px;">{{ label }}</div>
+        <div style="font-size:22px; font-weight:800; color:var(--navy);">{{ value }}<span style="font-size:13px; color:var(--text-muted);">{{ suffix }}</span></div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Two Column Layout -->
+    <div style="display:grid; grid-template-columns:1fr 320px; gap:24px; align-items:start;">
+
+      <!-- Left: BOM -->
+      <div>
+        <h2 style="font-size:18px; font-weight:700; color:var(--navy); margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+          <i data-lucide="list" style="width:18px; height:18px;"></i>
+          Bill of Materials
+        </h2>
+
+        {% for category_name, category_data in categories.items() %}
+        <div style="background:#fff; border:1px solid var(--border-color); border-radius:var(--radius-md); overflow:hidden; margin-bottom:16px; box-shadow:var(--shadow-sm);">
+
+          <!-- Category Header -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--navy);">
+            <span style="font-size:13px; font-weight:700; color:#fff;">{{ category_name }}</span>
+            <span style="font-size:13px; font-weight:700; color:var(--gold);">${{ '{:,.0f}'.format(category_data.subtotal) }}</span>
+          </div>
+
+          <table style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr style="background:var(--bg-primary);">
+                <th style="padding:8px 16px; text-align:left; font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Item</th>
+                <th style="padding:8px 8px; text-align:right; font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Qty</th>
+                <th style="padding:8px 8px; text-align:center; font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Unit</th>
+                <th style="padding:8px 8px; text-align:right; font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Unit Cost</th>
+                <th style="padding:8px 16px; text-align:right; font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in category_data.bom_items %}
+              <tr style="border-top:1px solid var(--border-color);">
+                <td style="padding:10px 16px; font-size:13px; color:var(--text-primary);">{{ item.name }}</td>
+                <td style="padding:10px 8px; text-align:right; font-size:13px; color:var(--text-secondary);">{{ '{:,.1f}'.format(item.quantity) }}</td>
+                <td style="padding:10px 8px; text-align:center; font-size:12px; color:var(--text-muted);">{{ item.unit }}</td>
+                <td style="padding:10px 8px; text-align:right; font-size:13px; color:var(--text-secondary);">${{ '{:,.2f}'.format(item.unit_cost) }}</td>
+                <td style="padding:10px 16px; text-align:right; font-size:13px; font-weight:600; color:var(--text-primary);">${{ '{:,.0f}'.format(item.quantity * item.unit_cost) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+        </div>
+        {% endfor %}
+
+        <!-- Permits Table -->
+        <h2 style="font-size:18px; font-weight:700; color:var(--navy); margin:24px 0 16px; display:flex; align-items:center; gap:8px;">
+          <i data-lucide="file-check" style="width:18px; height:18px;"></i>
+          Permits & Required Documents
+        </h2>
+
+        <div style="background:#fff; border:1px solid var(--border-color); border-radius:var(--radius-md); overflow:hidden; box-shadow:var(--shadow-sm);">
+          <table style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr style="background:var(--navy);">
+                <th style="padding:10px 16px; text-align:left; font-size:11px; color:#fff; font-weight:600; text-transform:uppercase;">Permit</th>
+                <th style="padding:10px 8px; text-align:right; font-size:11px; color:#fff; font-weight:600; text-transform:uppercase;">Est. Fee</th>
+                <th style="padding:10px 8px; text-align:left; font-size:11px; color:#fff; font-weight:600; text-transform:uppercase;">Processing</th>
+                <th style="padding:10px 16px; text-align:center; font-size:11px; color:#fff; font-weight:600; text-transform:uppercase;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for permit in permit_items %}
+              <tr style="border-top:1px solid var(--border-color);">
+                <td style="padding:10px 16px; font-size:13px; font-weight:500; color:var(--text-primary);">{{ permit.name }}</td>
+                <td style="padding:10px 8px; text-align:right; font-size:13px; font-weight:600; color:var(--navy);">${{ '{:,.0f}'.format(permit.estimated_fee) }}</td>
+                <td style="padding:10px 8px; font-size:12px; color:var(--text-muted);">{{ permit.processing_time }}</td>
+                <td style="padding:10px 16px; text-align:center;">
+                  {% if permit.is_required %}
+                  <span style="background:#c6f6d5; color:#276749; font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px;">Required</span>
+                  {% else %}
+                  <span style="background:var(--gray-100); color:var(--gray-500); font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px;">Optional</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- Right: Summary -->
+      <div style="position:sticky; top:20px; display:flex; flex-direction:column; gap:16px;">
+
+        <!-- Cost Summary Box -->
+        <div style="background:#fff; border:1px solid var(--border-color); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-md);">
+          <div style="padding:14px 16px; border-bottom:1px solid var(--border-color);">
+            <span style="font-size:14px; font-weight:700; color:var(--text-primary);">Cost Summary</span>
+          </div>
+
+          {% for label, value in [
+            ('Land Cost', land_cost),
+            ('Materials', total_materials),
+            ('Labour (est.)', labor_cost),
+            ('Permits & Fees', soft_costs),
+            ('Contingency', contingency),
+          ] %}
+          <div style="display:flex; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--border-color);">
+            <span style="font-size:13px; color:var(--text-secondary);">{{ label }}</span>
+            <span style="font-size:13px; font-weight:600; color:var(--text-primary);">${{ '{:,.0f}'.format(value) }}</span>
+          </div>
+          {% endfor %}
+
+          <div style="padding:16px; background:var(--navy); display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:13px; font-weight:700; color:rgba(255,255,255,0.8);">Grand Total</span>
+            <span style="font-size:20px; font-weight:800; color:var(--gold);">${{ '{:,.0f}'.format(grand_total) }}</span>
+          </div>
+        </div>
+
+        <!-- Pie Chart -->
+        <div style="background:#fff; border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:16px; box-shadow:var(--shadow-sm);">
+          <div style="font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:12px;">Cost Breakdown</div>
+          <canvas id="sharedPieChart" height="200"></canvas>
+        </div>
+
+        <!-- Disclaimer -->
+        <div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:14px;">
+          <p style="font-size:11px; color:var(--text-muted); line-height:1.6; margin:0;">
+            <strong>Disclaimer:</strong> These estimates are based on regional cost benchmarks and are intended as planning guides only. Actual costs may vary based on market conditions, contractor pricing, and site-specific factors. Always obtain multiple contractor quotes before committing to a project budget.
+          </p>
+        </div>
+
+        <!-- CTA -->
+        <div style="background:linear-gradient(135deg, var(--navy), var(--navy-light)); border-radius:var(--radius-lg); padding:20px; text-align:center;">
+          <div style="font-size:13px; font-weight:700; color:var(--gold); margin-bottom:6px;">Create Your Own Estimates</div>
+          <div style="font-size:12px; color:rgba(255,255,255,0.7); margin-bottom:14px; line-height:1.5;">Join CredenceHub to access the full Construction Cost Calculator for Canada & USA</div>
+          <a href="{{ url_for('auth.register') }}" style="display:inline-block; background:var(--gold); color:var(--navy); font-size:13px; font-weight:700; padding:10px 20px; border-radius:var(--radius-sm); text-decoration:none;">Get Started Free</a>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    const pieCtx = document.getElementById('sharedPieChart');
+    if (pieCtx) {
+      new Chart(pieCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Land', 'Materials', 'Labour', 'Permits', 'Contingency'],
+          datasets: [{
+            data: [
+              {{ land_cost|round|int }},
+              {{ total_materials|round|int }},
+              {{ labor_cost|round|int }},
+              {{ soft_costs|round|int }},
+              {{ contingency|round|int }}
+            ],
+            backgroundColor: ['#0F2D5E','#F5A623','#38a169','#3182ce','#718096'],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { font: { size: 10 }, padding: 8 }
+            }
+          }
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>

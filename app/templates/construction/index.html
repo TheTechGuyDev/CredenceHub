@@ -1,5 +1,209 @@
 {% extends "layout.html" %}
 {% block page_title %}Construction Calculator{% endblock %}
+{% block page_subtitle %}Regional cost estimates for Canada & USA{% endblock %}
+
 {% block content %}
-<p style="color:var(--text-muted);">Construction calculator coming soon.</p>
+
+<!-- Header Actions -->
+<div class="flex-between mb-24">
+  <div style="display:flex; gap:10px; align-items:center;">
+    <div style="background:rgba(245,166,35,0.1); border:1px solid rgba(245,166,35,0.3); border-radius:var(--radius-sm); padding:8px 14px; display:flex; align-items:center; gap:8px;">
+      <i data-lucide="database" style="width:14px; height:14px; color:var(--gold-dark);"></i>
+      <span style="font-size:12px; font-weight:600; color:var(--gold-dark);">{{ cities|length }} Cities in Database</span>
+    </div>
+  </div>
+  <a href="{{ url_for('construction.new_project') }}" class="btn btn-primary">
+    <i data-lucide="plus" style="width:16px; height:16px;"></i>
+    New Cost Estimate
+  </a>
+</div>
+
+<!-- Stats Row -->
+<div class="kpi-grid mb-24">
+  <div class="kpi-card">
+    <div class="kpi-icon navy">
+      <i data-lucide="hard-hat" style="width:22px; height:22px;"></i>
+    </div>
+    <div class="kpi-data">
+      <div class="kpi-value">{{ projects|length }}</div>
+      <div class="kpi-label">Cost Estimates</div>
+      <div class="kpi-change up">Total projects</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon gold">
+      <i data-lucide="map-pin" style="width:22px; height:22px;"></i>
+    </div>
+    <div class="kpi-data">
+      <div class="kpi-value">17</div>
+      <div class="kpi-label">Cities Covered</div>
+      <div class="kpi-change up">Canada & USA</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon success">
+      <i data-lucide="file-text" style="width:22px; height:22px;"></i>
+    </div>
+    <div class="kpi-data">
+      <div class="kpi-value">10+</div>
+      <div class="kpi-label">BOM Categories</div>
+      <div class="kpi-change up">Full line-item detail</div>
+    </div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon info">
+      <i data-lucide="download" style="width:22px; height:22px;"></i>
+    </div>
+    <div class="kpi-data">
+      <div class="kpi-value">PDF</div>
+      <div class="kpi-label">Export Format</div>
+      <div class="kpi-change up">Branded reports</div>
+    </div>
+  </div>
+</div>
+
+<!-- Projects List -->
+<div class="card">
+  {% if projects %}
+  <div class="card-header">
+    <span class="card-title">Your Cost Estimates</span>
+    <span style="font-size:13px; color:var(--text-muted);">{{ projects|length }} project{{ 's' if projects|length != 1 }}</span>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Project Name</th>
+          <th>Location</th>
+          <th>Building Type</th>
+          <th>Floor Area</th>
+          <th>Finish Level</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for project in projects %}
+        <tr>
+          <td>
+            <div style="font-weight:600; color:var(--text-primary);">{{ project.name }}</div>
+            {% if project.address %}
+            <div style="font-size:12px; color:var(--text-muted);">{{ project.address }}</div>
+            {% endif %}
+          </td>
+          <td style="font-size:13px; color:var(--text-secondary);">
+            {{ project.city }}, {{ project.province_state }}
+            <div style="font-size:11px; color:var(--text-muted);">{{ project.country }}</div>
+          </td>
+          <td>
+            <span class="badge badge-navy">{{ project.building_type.replace('_', ' ').title() }}</span>
+          </td>
+          <td style="font-size:13px; color:var(--text-secondary);">
+            {{ '{:,.0f}'.format(project.floor_area_sqft) }} sq ft
+          </td>
+          <td>
+            <span class="badge
+              {% if project.finish_level == 'luxury' %}badge-gold
+              {% elif project.finish_level == 'premium' %}badge-navy
+              {% elif project.finish_level == 'standard' %}badge-active
+              {% else %}badge-archived{% endif %}">
+              {{ project.finish_level.title() }}
+            </span>
+          </td>
+          <td style="font-size:13px; color:var(--text-muted);">
+            {{ project.created_at.strftime('%b %d, %Y') }}
+          </td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <a href="{{ url_for('construction.view_project', project_id=project.id) }}"
+                 class="btn btn-ghost btn-sm" title="View">
+                <i data-lucide="eye" style="width:14px; height:14px;"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <!-- Empty State -->
+  <div class="empty-state" style="padding:80px 40px;">
+    <div class="empty-state-icon" style="width:80px; height:80px;">
+      <i data-lucide="hard-hat" style="width:36px; height:36px;"></i>
+    </div>
+    <div class="empty-state-title" style="font-size:20px;">No cost estimates yet</div>
+    <div class="empty-state-text" style="max-width:400px; margin:0 auto 24px;">
+      Generate a detailed Bill of Materials and construction cost estimate for any building type in Canada or the USA
+    </div>
+    <a href="{{ url_for('construction.new_project') }}" class="btn btn-primary btn-lg">
+      <i data-lucide="plus" style="width:18px; height:18px;"></i>
+      Create Your First Estimate
+    </a>
+
+    <!-- Feature Highlights -->
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; max-width:600px; margin:40px auto 0; text-align:left;">
+      {% for icon, title, desc in [
+        ('map-pin', '17 Cities', 'Regional cost data for major Canadian and US cities'),
+        ('list', 'Full BOM', 'Detailed Bill of Materials with line-item quantities and costs'),
+        ('file-text', 'Branded Reports', 'Export as PDF or Excel with your company branding')
+      ] %}
+      <div style="background:var(--bg-primary); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:16px;">
+        <div style="width:36px; height:36px; background:rgba(15,45,94,0.1); border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; margin-bottom:10px;">
+          <i data-lucide="{{ icon }}" style="width:18px; height:18px; color:var(--navy);"></i>
+        </div>
+        <div style="font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:4px;">{{ title }}</div>
+        <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">{{ desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- City Coverage -->
+<div class="card" style="margin-top:20px;">
+  <div class="card-header">
+    <span class="card-title">City Coverage</span>
+    <span style="font-size:12px; color:var(--text-muted);">Regional cost benchmarks</span>
+  </div>
+  <div class="card-body">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+
+      <!-- Canada -->
+      <div>
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--navy); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+          <span style="font-size:16px;">🇨🇦</span> Canada
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          {% for city in cities if city.country == 'CA' %}
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-primary); border-radius:var(--radius-sm);">
+            <span style="font-size:13px; font-weight:500; color:var(--text-primary);">{{ city.city }}, {{ city.province_state }}</span>
+            <span style="font-size:12px; color:var(--text-muted);">${{ '{:,.0f}'.format(city.cost_sfh_standard) }}/sqft</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- USA -->
+      <div>
+        <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--navy); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+          <span style="font-size:16px;">🇺🇸</span> United States
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          {% for city in cities if city.country == 'US' %}
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-primary); border-radius:var(--radius-sm);">
+            <span style="font-size:13px; font-weight:500; color:var(--text-primary);">{{ city.city }}, {{ city.province_state }}</span>
+            <span style="font-size:12px; color:var(--text-muted);">${{ '{:,.0f}'.format(city.cost_sfh_standard) }}/sqft</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 {% endblock %}

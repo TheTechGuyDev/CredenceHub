@@ -32,7 +32,6 @@ def generate_bom(project, city_data):
     foundation = project.foundation_type
     construction_type = project.construction_type
     finish_level = project.finish_level
-    building_type = project.building_type
 
     labor_idx = city_data.labor_index if city_data else 1.0
     mat_idx = city_data.material_index if city_data else 1.0
@@ -149,15 +148,52 @@ def generate_permits(city, province_state, country, floor_area):
     return base_permits
 
 
+def get_cost_summary(project, city_data):
+    bom_items = project.bom_items.order_by(BOMItem.category).all()
+    permit_items = project.permit_items.all()
+
+    categories = {}
+    total_materials = 0
+    for item in bom_items:
+        line_total = item.quantity * item.unit_cost
+        total_materials += line_total
+        if item.category not in categories:
+            categories[item.category] = {'bom_items': [], 'subtotal': 0}
+        categories[item.category]['bom_items'].append(item)
+        categories[item.category]['subtotal'] += line_total
+
+    total_permits = sum(p.estimated_fee for p in permit_items if p.is_required)
+    land_cost = city_data.land_cost_sqft * project.floor_area_sqft if city_data else 0
+    labor_cost = total_materials * 0.65
+    hard_costs = total_materials + labor_cost
+    soft_costs = total_permits
+    contingency = (hard_costs + soft_costs) * (project.contingency_pct / 100)
+    grand_total = land_cost + hard_costs + soft_costs + contingency
+    cost_per_sqft = grand_total / project.floor_area_sqft if project.floor_area_sqft > 0 else 0
+
+    return {
+        'categories': categories,
+        'bom_items': bom_items,
+        'permit_items': permit_items,
+        'total_materials': total_materials,
+        'labor_cost': labor_cost,
+        'hard_costs': hard_costs,
+        'soft_costs': soft_costs,
+        'land_cost': land_cost,
+        'contingency': contingency,
+        'grand_total': grand_total,
+        'cost_per_sqft': cost_per_sqft,
+        'total_permits': total_permits,
+    }
+
+
 @construction.route('/')
 @login_required
 def index():
     projects = ConstructionProject.query.filter_by(
         user_id=current_user.id
     ).order_by(ConstructionProject.updated_at.desc()).all()
-
     cities = CityData.query.order_by(CityData.country, CityData.city).all()
-
     return render_template(
         'construction/index.html',
         title='Construction Calculator - CredenceHub',
@@ -247,46 +283,19 @@ def view_project(project_id):
     ).first_or_404()
 
     city_data = get_city_data(project.city, project.province_state)
-    bom_items = project.bom_items.order_by(BOMItem.category).all()
-    permit_items = project.permit_items.all()
-    audit_logs = project.audit_logs.order_by(ConstructionAuditLog.created_at.desc()).limit(20).all()
+    audit_logs = project.audit_logs.order_by(
+        ConstructionAuditLog.created_at.desc()
+    ).limit(20).all()
 
-    categories = {}
-    total_materials = 0
-    for item in bom_items:
-        line_total = item.quantity * item.unit_cost
-        total_materials += line_total
-        if item.category not in categories:
-            categories[item.category] = {'items': [], 'subtotal': 0}
-        categories[item.category]['items'].append(item)
-        categories[item.category]['subtotal'] += line_total
-
-    total_permits = sum(p.estimated_fee for p in permit_items if p.is_required)
-    land_cost = city_data.land_cost_sqft * project.floor_area_sqft if city_data else 0
-    labor_cost = total_materials * 0.65
-    hard_costs = total_materials + labor_cost
-    soft_costs = total_permits
-    contingency = (hard_costs + soft_costs) * (project.contingency_pct / 100)
-    grand_total = land_cost + hard_costs + soft_costs + contingency
-    cost_per_sqft = grand_total / project.floor_area_sqft if project.floor_area_sqft > 0 else 0
+    summary = get_cost_summary(project, city_data)
 
     return render_template(
         'construction/view.html',
         title=f'{project.name} - CredenceHub',
         project=project,
         city_data=city_data,
-        categories=categories,
-        permit_items=permit_items,
         audit_logs=audit_logs,
-        total_materials=total_materials,
-        labor_cost=labor_cost,
-        hard_costs=hard_costs,
-        soft_costs=soft_costs,
-        land_cost=land_cost,
-        contingency=contingency,
-        grand_total=grand_total,
-        cost_per_sqft=cost_per_sqft,
-        total_permits=total_permits
+        **summary
     )
 
 
@@ -335,40 +344,11 @@ def share_project(project_id):
 def shared_report(token):
     project = ConstructionProject.query.filter_by(share_token=token).first_or_404()
     city_data = get_city_data(project.city, project.province_state)
-    bom_items = project.bom_items.order_by(BOMItem.category).all()
-    permit_items = project.permit_items.all()
-
-    categories = {}
-    total_materials = 0
-    for item in bom_items:
-        line_total = item.quantity * item.unit_cost
-        total_materials += line_total
-        if item.category not in categories:
-            categories[item.category] = {'items': [], 'subtotal': 0}
-        categories[item.category]['items'].append(item)
-        categories[item.category]['subtotal'] += line_total
-
-    total_permits = sum(p.estimated_fee for p in permit_items if p.is_required)
-    land_cost = city_data.land_cost_sqft * project.floor_area_sqft if city_data else 0
-    labor_cost = total_materials * 0.65
-    hard_costs = total_materials + labor_cost
-    soft_costs = total_permits
-    contingency = (hard_costs + soft_costs) * (project.contingency_pct / 100)
-    grand_total = land_cost + hard_costs + soft_costs + contingency
-    cost_per_sqft = grand_total / project.floor_area_sqft if project.floor_area_sqft > 0 else 0
+    summary = get_cost_summary(project, city_data)
 
     return render_template(
         'construction/shared.html',
         project=project,
         city_data=city_data,
-        categories=categories,
-        permit_items=permit_items,
-        total_materials=total_materials,
-        labor_cost=labor_cost,
-        hard_costs=hard_costs,
-        soft_costs=soft_costs,
-        land_cost=land_cost,
-        contingency=contingency,
-        grand_total=grand_total,
-        cost_per_sqft=cost_per_sqft
+        **summary
     )
