@@ -7,7 +7,7 @@ from app.main import main
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.index'))
-    return render_template('main/landing.html', title='CredenceHub - Real Estate Investment Platform')
+    return render_template('main/landing.html', title='CredenceHub - Real Estate Investment & Construction Analysis Platform')
 
 
 @main.route('/pricing')
