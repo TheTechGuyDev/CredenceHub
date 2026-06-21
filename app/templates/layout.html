@@ -13,7 +13,7 @@
         <span class="sidebar-logo-text">CredenceHub</span>
       </div>
       <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
-        <i data-lucide="panel-left-close" style="width:18px; height:18px;"></i>
+        <i data-lucide="panel-left-close" style="width:16px; height:16px;"></i>
       </button>
     </div>
 
@@ -23,11 +23,11 @@
       <!-- Main -->
       <div class="nav-section">
         <div class="nav-section-label">Main</div>
-
         <a href="{{ url_for('dashboard.index') }}"
-           class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+           class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}"
+           onclick="closeMobileSidebar()">
           <span class="nav-item-icon">
-            <i data-lucide="layout-dashboard" style="width:18px; height:18px;"></i>
+            <i data-lucide="layout-dashboard" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Dashboard</span>
         </a>
@@ -38,18 +38,19 @@
         <div class="nav-section-label">Analysis</div>
 
         <a href="{{ url_for('deals.index') }}"
-           class="nav-item {% if 'deals' in request.endpoint %}active{% endif %}">
+           class="nav-item {% if 'deals' in request.endpoint %}active{% endif %}"
+           onclick="closeMobileSidebar()">
           <span class="nav-item-icon">
-            <i data-lucide="trending-up" style="width:18px; height:18px;"></i>
+            <i data-lucide="trending-up" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Deal Analysis</span>
         </a>
 
         <a href="{{ url_for('construction.index') }}"
-           class="nav-item {% if 'construction' in request.endpoint %}active{% endif %}
-           {% if not current_user.is_premium() %}locked{% endif %}">
+           class="nav-item {% if 'construction' in request.endpoint %}active{% endif %}"
+           onclick="closeMobileSidebar()">
           <span class="nav-item-icon">
-            <i data-lucide="hard-hat" style="width:18px; height:18px;"></i>
+            <i data-lucide="hard-hat" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Construction Calc</span>
           {% if not current_user.is_premium() %}
@@ -57,10 +58,10 @@
           {% endif %}
         </a>
 
-        <a href="{{ url_for('deals.index') }}"
-           class="nav-item {% if not current_user.is_premium() %}locked{% endif %}">
+        <a href="#"
+           class="nav-item">
           <span class="nav-item-icon">
-            <i data-lucide="map-pin" style="width:18px; height:18px;"></i>
+            <i data-lucide="map-pin" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Comps</span>
           {% if not current_user.is_premium() %}
@@ -74,37 +75,37 @@
         <div class="nav-section-label">Tools</div>
 
         <a href="{{ url_for('marketing.index') }}"
-           class="nav-item {% if 'marketing' in request.endpoint %}active{% endif %}
-           {% if not current_user.is_premium() %}locked{% endif %}">
+           class="nav-item {% if 'marketing' in request.endpoint %}active{% endif %}"
+           onclick="closeMobileSidebar()">
           <span class="nav-item-icon">
-            <i data-lucide="megaphone" style="width:18px; height:18px;"></i>
+            <i data-lucide="megaphone" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Marketing</span>
         </a>
 
         <a href="{{ url_for('funding.index') }}"
-           class="nav-item {% if 'funding' in request.endpoint %}active{% endif %}
-           {% if not current_user.is_premium() %}locked{% endif %}">
+           class="nav-item {% if 'funding' in request.endpoint %}active{% endif %}"
+           onclick="closeMobileSidebar()">
           <span class="nav-item-icon">
-            <i data-lucide="landmark" style="width:18px; height:18px;"></i>
+            <i data-lucide="landmark" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Funding</span>
         </a>
 
         <a href="{{ url_for('projects.index') }}"
-           class="nav-item {% if 'projects' in request.endpoint %}active{% endif %}
-           {% if not current_user.is_premium() %}locked{% endif %}">
+           class="nav-item {% if 'projects' in request.endpoint %}active{% endif %}"
+           onclick="closeMobileSidebar()">
           <span class="nav-item-icon">
-            <i data-lucide="folder-kanban" style="width:18px; height:18px;"></i>
+            <i data-lucide="folder-kanban" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Projects</span>
         </a>
 
         <a href="{{ url_for('documents.index') }}"
-           class="nav-item {% if 'documents' in request.endpoint %}active{% endif %}
-           {% if not current_user.is_premium() %}locked{% endif %}">
+           class="nav-item {% if 'documents' in request.endpoint %}active{% endif %}"
+           onclick="closeMobileSidebar()">
           <span class="nav-item-icon">
-            <i data-lucide="file-text" style="width:18px; height:18px;"></i>
+            <i data-lucide="file-text" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Documents</span>
         </a>
@@ -115,18 +116,18 @@
         <div class="nav-section-label">Account</div>
 
         <a href="{{ url_for('auth.profile') }}"
-           class="nav-item {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+           class="nav-item {% if request.endpoint == 'auth.profile' %}active{% endif %}"
+           onclick="closeMobileSidebar()">
           <span class="nav-item-icon">
-            <i data-lucide="user" style="width:18px; height:18px;"></i>
+            <i data-lucide="user" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Profile</span>
         </a>
 
         {% if current_user.is_pro() %}
-        <a href="#"
-           class="nav-item">
+        <a href="#" class="nav-item" onclick="closeMobileSidebar()">
           <span class="nav-item-icon">
-            <i data-lucide="users" style="width:18px; height:18px;"></i>
+            <i data-lucide="users" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Team</span>
         </a>
@@ -134,9 +135,10 @@
 
         {% if current_user.is_admin %}
         <a href="{{ url_for('admin.index') }}"
-           class="nav-item {% if 'admin' in request.endpoint %}active{% endif %}">
+           class="nav-item {% if 'admin' in request.endpoint %}active{% endif %}"
+           onclick="closeMobileSidebar()">
           <span class="nav-item-icon">
-            <i data-lucide="shield" style="width:18px; height:18px;"></i>
+            <i data-lucide="shield" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Admin</span>
         </a>
@@ -144,7 +146,7 @@
 
         <a href="{{ url_for('auth.logout') }}" class="nav-item">
           <span class="nav-item-icon">
-            <i data-lucide="log-out" style="width:18px; height:18px;"></i>
+            <i data-lucide="log-out" style="width:16px; height:16px;"></i>
           </span>
           <span class="nav-item-text">Logout</span>
         </a>
@@ -152,7 +154,7 @@
 
     </nav>
 
-    <!-- Sidebar Footer - User Info -->
+    <!-- Sidebar Footer -->
     <div class="sidebar-footer">
       <div class="sidebar-user">
         <div class="sidebar-avatar">
@@ -177,17 +179,24 @@
 
   </aside>
 
+  <!-- Mobile Overlay -->
+  <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileSidebar()"></div>
+
   <!-- ── MAIN CONTENT ── -->
   <div class="main-content" id="mainContent">
 
     <!-- Header -->
     <header class="app-header">
       <div class="header-left">
-        <!-- Mobile menu toggle -->
-        <button class="header-btn" id="mobileMenuBtn" style="display:none;">
+
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="openMobileSidebar()" style="display:none;">
           <i data-lucide="menu" style="width:20px; height:20px;"></i>
         </button>
-        <div>
+
+        <!-- Desktop Sidebar Toggle handled in JS -->
+
+        <div style="min-width:0;">
           <div class="header-title">{% block page_title %}CredenceHub{% endblock %}</div>
           <div class="header-subtitle">{% block page_subtitle %}{% endblock %}</div>
         </div>
@@ -199,18 +208,18 @@
         <div class="plan-switcher">
           <span class="plan-badge {{ current_user.plan }}">{{ current_user.plan }}</span>
           {% if not current_user.is_premium() %}
-            <span style="font-size:12px; color: var(--gold);">Upgrade</span>
+            <span style="font-size:11px; color: var(--gold);">Upgrade</span>
           {% endif %}
         </div>
 
         <!-- Dark mode toggle -->
         <button class="header-btn" id="themeToggle" title="Toggle dark mode">
-          <i data-lucide="moon" style="width:18px; height:18px;" id="themeIcon"></i>
+          <i data-lucide="moon" style="width:16px; height:16px;" id="themeIcon"></i>
         </button>
 
         <!-- Notifications -->
-        <button class="header-btn" id="notifBtn" title="Notifications">
-          <i data-lucide="bell" style="width:18px; height:18px;"></i>
+        <button class="header-btn" title="Notifications">
+          <i data-lucide="bell" style="width:16px; height:16px;"></i>
           {% if notifications is defined and notifications %}
             <span class="notification-badge"></span>
           {% endif %}
@@ -219,7 +228,7 @@
         <!-- User avatar dropdown -->
         <div class="dropdown">
           <button class="header-btn" id="userMenuBtn">
-            <div style="width:32px; height:32px; border-radius:50%; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">
+            <div style="width:30px; height:30px; border-radius:50%; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0;">
               {% if current_user.profile and current_user.profile.first_name %}
                 {{ current_user.profile.first_name[0].upper() }}
               {% else %}
@@ -229,12 +238,12 @@
           </button>
           <div class="dropdown-menu" id="userMenu">
             <a href="{{ url_for('auth.profile') }}" class="dropdown-item">
-              <i data-lucide="user" style="width:15px; height:15px;"></i>
+              <i data-lucide="user" style="width:14px; height:14px;"></i>
               My Profile
             </a>
             <div class="dropdown-divider"></div>
             <a href="{{ url_for('auth.logout') }}" class="dropdown-item" style="color:var(--danger);">
-              <i data-lucide="log-out" style="width:15px; height:15px;"></i>
+              <i data-lucide="log-out" style="width:14px; height:14px;"></i>
               Logout
             </a>
           </div>
@@ -251,10 +260,4 @@
   </div>
 
 </div>
-
-<!-- Mobile sidebar overlay -->
-<div class="mobile-overlay" id="mobileOverlay"
-     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999;"
-     onclick="closeMobileSidebar()"></div>
-
 {% endblock %}

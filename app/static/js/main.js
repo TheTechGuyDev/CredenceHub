@@ -1,5 +1,6 @@
 // ─────────────────────────────────────────
 // CREDENCEHUB — MAIN JAVASCRIPT
+// Full mobile responsive support
 // ─────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -14,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const themeIcon = document.getElementById('themeIcon');
   const html = document.documentElement;
 
-  // Load saved theme
   const savedTheme = localStorage.getItem('ch_theme') || 'light';
   html.setAttribute('data-theme', savedTheme);
   updateThemeIcon(savedTheme);
@@ -26,40 +26,37 @@ document.addEventListener('DOMContentLoaded', function () {
       html.setAttribute('data-theme', next);
       localStorage.setItem('ch_theme', next);
       updateThemeIcon(next);
-      lucide.createIcons();
+      if (typeof lucide !== 'undefined') lucide.createIcons();
     });
   }
 
   function updateThemeIcon(theme) {
     if (!themeIcon) return;
-    if (theme === 'dark') {
-      themeIcon.setAttribute('data-lucide', 'sun');
-    } else {
-      themeIcon.setAttribute('data-lucide', 'moon');
-    }
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    }
+    themeIcon.setAttribute('data-lucide', theme === 'dark' ? 'sun' : 'moon');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
   }
 
-  // ── Sidebar Toggle ──
+  // ── Sidebar Toggle (Desktop) ──
   const sidebar = document.getElementById('sidebar');
   const sidebarToggle = document.getElementById('sidebarToggle');
   const mainContent = document.getElementById('mainContent');
 
-  const sidebarCollapsed = localStorage.getItem('ch_sidebar_collapsed') === 'true';
-  if (sidebarCollapsed && sidebar) {
-    sidebar.classList.add('collapsed');
-    if (mainContent) mainContent.classList.add('sidebar-collapsed');
+  // Only apply collapsed state on non-mobile
+  if (window.innerWidth > 768) {
+    const sidebarCollapsed = localStorage.getItem('ch_sidebar_collapsed') === 'true';
+    if (sidebarCollapsed && sidebar) {
+      sidebar.classList.add('collapsed');
+      if (mainContent) mainContent.classList.add('sidebar-collapsed');
+    }
   }
 
   if (sidebarToggle) {
     sidebarToggle.addEventListener('click', function () {
-      if (!sidebar) return;
+      if (!sidebar || window.innerWidth <= 768) return;
       const isCollapsed = sidebar.classList.toggle('collapsed');
       if (mainContent) mainContent.classList.toggle('sidebar-collapsed', isCollapsed);
       localStorage.setItem('ch_sidebar_collapsed', isCollapsed);
-      lucide.createIcons();
+      if (typeof lucide !== 'undefined') lucide.createIcons();
     });
   }
 
@@ -67,26 +64,54 @@ document.addEventListener('DOMContentLoaded', function () {
   const mobileMenuBtn = document.getElementById('mobileMenuBtn');
   const mobileOverlay = document.getElementById('mobileOverlay');
 
+  window.openMobileSidebar = function () {
+    if (sidebar) sidebar.classList.add('mobile-open');
+    if (mobileOverlay) mobileOverlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeMobileSidebar = function () {
+    if (sidebar) sidebar.classList.remove('mobile-open');
+    if (mobileOverlay) mobileOverlay.classList.remove('show');
+    document.body.style.overflow = '';
+  };
+
   function checkMobile() {
+    if (!mobileMenuBtn) return;
     if (window.innerWidth <= 768) {
-      if (mobileMenuBtn) mobileMenuBtn.style.display = 'flex';
+      mobileMenuBtn.style.display = 'flex';
+      // Ensure sidebar is hidden on mobile unless opened
+      if (sidebar && !sidebar.classList.contains('mobile-open')) {
+        sidebar.style.transform = 'translateX(-100%)';
+      }
     } else {
-      if (mobileMenuBtn) mobileMenuBtn.style.display = 'none';
+      mobileMenuBtn.style.display = 'none';
+      // Ensure overlay is closed on desktop
       closeMobileSidebar();
+      if (sidebar) sidebar.style.transform = '';
     }
   }
 
   if (mobileMenuBtn) {
-    mobileMenuBtn.addEventListener('click', function () {
-      if (sidebar) sidebar.classList.add('mobile-open');
-      if (mobileOverlay) mobileOverlay.style.display = 'block';
-    });
+    mobileMenuBtn.addEventListener('click', openMobileSidebar);
   }
 
-  window.closeMobileSidebar = function () {
-    if (sidebar) sidebar.classList.remove('mobile-open');
-    if (mobileOverlay) mobileOverlay.style.display = 'none';
-  };
+  // Close mobile sidebar on overlay click
+  if (mobileOverlay) {
+    mobileOverlay.addEventListener('click', closeMobileSidebar);
+  }
+
+  // Close mobile sidebar on Escape key
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      closeMobileSidebar();
+      // Also close modals
+      document.querySelectorAll('.modal-overlay.show').forEach(function (overlay) {
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
+      });
+    }
+  });
 
   window.addEventListener('resize', checkMobile);
   checkMobile();
@@ -105,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ── Close all dropdowns on outside click ──
   document.addEventListener('click', function (e) {
     document.querySelectorAll('.dropdown-menu.show').forEach(function (menu) {
-      if (!menu.contains(e.target)) {
+      if (!menu.contains(e.target) && !menu.previousElementSibling.contains(e.target)) {
         menu.classList.remove('show');
       }
     });
@@ -148,21 +173,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Close modal on Escape key
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-      document.querySelectorAll('.modal-overlay.show').forEach(function (overlay) {
-        overlay.classList.remove('show');
-        document.body.style.overflow = '';
-      });
-    }
-  });
-
   // ── Toast Notifications ──
   window.showToast = function (message, type) {
     type = type || 'info';
-    const container = document.getElementById('toastContainer') ||
-      createToastContainer();
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toastContainer';
+      container.className = 'toast-container';
+      document.body.appendChild(container);
+    }
 
     const icons = {
       success: 'check-circle',
@@ -183,16 +203,16 @@ document.addEventListener('DOMContentLoaded', function () {
     toast.innerHTML = `
       <span class="toast-icon">
         <i data-lucide="${icons[type] || 'info'}"
-           style="color:${colors[type] || colors.info}; width:18px; height:18px;"></i>
+           style="color:${colors[type] || colors.info}; width:16px; height:16px;"></i>
       </span>
       <span class="toast-message">${message}</span>
       <button class="toast-close" onclick="this.closest('.toast').remove()">
-        <i data-lucide="x" style="width:16px; height:16px;"></i>
+        <i data-lucide="x" style="width:14px; height:14px;"></i>
       </button>
     `;
 
     container.appendChild(toast);
-    lucide.createIcons();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 
     setTimeout(function () {
       toast.style.opacity = '0';
@@ -201,14 +221,6 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(function () { toast.remove(); }, 300);
     }, 5000);
   };
-
-  function createToastContainer() {
-    const container = document.createElement('div');
-    container.id = 'toastContainer';
-    container.className = 'toast-container';
-    document.body.appendChild(container);
-    return container;
-  }
 
   // ── Number Formatting ──
   window.formatCurrency = function (value, currency) {
@@ -234,16 +246,6 @@ document.addEventListener('DOMContentLoaded', function () {
     return (value || 0).toFixed(decimals) + '%';
   };
 
-  // ── Input Number Formatting ──
-  document.querySelectorAll('input[data-format="currency"]').forEach(function (input) {
-    input.addEventListener('blur', function () {
-      const raw = parseFloat(this.value.replace(/[^0-9.-]/g, ''));
-      if (!isNaN(raw)) {
-        this.value = raw.toFixed(2);
-      }
-    });
-  });
-
   // ── Confirm Delete ──
   window.confirmDelete = function (message, callback) {
     message = message || 'Are you sure you want to delete this item?';
@@ -252,11 +254,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   };
 
-  // ── Form Validation Helpers ──
+  // ── Form Validation ──
   window.validateForm = function (formId) {
     const form = document.getElementById(formId);
     if (!form) return true;
-
     let valid = true;
     form.querySelectorAll('[required]').forEach(function (field) {
       if (!field.value.trim()) {
@@ -266,18 +267,8 @@ document.addEventListener('DOMContentLoaded', function () {
         field.style.borderColor = '';
       }
     });
-
     return valid;
   };
-
-  // ── Active Nav Highlighting ──
-  const currentPath = window.location.pathname;
-  document.querySelectorAll('.nav-item').forEach(function (item) {
-    const href = item.getAttribute('href');
-    if (href && currentPath.startsWith(href) && href !== '/') {
-      item.classList.add('active');
-    }
-  });
 
   // ── Table Sort ──
   document.querySelectorAll('th[data-sort]').forEach(function (th) {
@@ -290,17 +281,15 @@ document.addEventListener('DOMContentLoaded', function () {
       const asc = this.getAttribute('data-order') !== 'asc';
 
       rows.sort(function (a, b) {
-        const aVal = a.children[col].textContent.trim();
-        const bVal = b.children[col].textContent.trim();
+        const aVal = a.children[col] ? a.children[col].textContent.trim() : '';
+        const bVal = b.children[col] ? b.children[col].textContent.trim() : '';
         const aNum = parseFloat(aVal.replace(/[^0-9.-]/g, ''));
         const bNum = parseFloat(bVal.replace(/[^0-9.-]/g, ''));
 
         if (!isNaN(aNum) && !isNaN(bNum)) {
           return asc ? aNum - bNum : bNum - aNum;
         }
-        return asc
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
+        return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       });
 
       rows.forEach(function (row) { tbody.appendChild(row); });
@@ -330,10 +319,10 @@ document.addEventListener('DOMContentLoaded', function () {
       if (btnEl) {
         const original = btnEl.innerHTML;
         btnEl.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;"></i>';
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         setTimeout(function () {
           btnEl.innerHTML = original;
-          lucide.createIcons();
+          if (typeof lucide !== 'undefined') lucide.createIcons();
         }, 2000);
       }
     });
@@ -348,21 +337,18 @@ document.addEventListener('DOMContentLoaded', function () {
     tabs.forEach(function (tab) {
       tab.addEventListener('click', function () {
         const target = this.getAttribute('data-tab-target');
-
         tabs.forEach(function (t) { t.classList.remove('active'); });
         panels.forEach(function (p) { p.style.display = 'none'; });
-
         this.classList.add('active');
         const panel = document.getElementById(target);
         if (panel) panel.style.display = 'block';
       });
     });
 
-    // Activate first tab by default
     if (tabs.length > 0) tabs[0].click();
   });
 
-  // ── Smooth scroll for anchors ──
+  // ── Smooth scroll ──
   document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
     anchor.addEventListener('click', function (e) {
       const target = document.querySelector(this.getAttribute('href'));
@@ -371,6 +357,16 @@ document.addEventListener('DOMContentLoaded', function () {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
+  });
+
+  // ── Auto dismiss toasts ──
+  document.querySelectorAll('.toast').forEach(function (toast) {
+    setTimeout(function () {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100%)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(function () { toast.remove(); }, 300);
+    }, 5000);
   });
 
 });
