@@ -65,7 +65,10 @@ document.addEventListener('DOMContentLoaded', function () {
   const mobileOverlay = document.getElementById('mobileOverlay');
 
   window.openMobileSidebar = function () {
-    if (sidebar) sidebar.classList.add('mobile-open');
+    if (sidebar) {
+      sidebar.style.transform = '';
+      sidebar.classList.add('mobile-open');
+    }
     if (mobileOverlay) mobileOverlay.classList.add('show');
     document.body.style.overflow = 'hidden';
   };
@@ -80,13 +83,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!mobileMenuBtn) return;
     if (window.innerWidth <= 768) {
       mobileMenuBtn.style.display = 'flex';
-      // Ensure sidebar is hidden on mobile unless opened
-      if (sidebar && !sidebar.classList.contains('mobile-open')) {
-        sidebar.style.transform = 'translateX(-100%)';
-      }
+      // Remove any inline transform — let CSS handle it
+      if (sidebar) sidebar.style.transform = '';
     } else {
       mobileMenuBtn.style.display = 'none';
-      // Ensure overlay is closed on desktop
+      // Ensure overlay and mobile state is cleared on desktop
       closeMobileSidebar();
       if (sidebar) sidebar.style.transform = '';
     }
