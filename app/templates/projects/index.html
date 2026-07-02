@@ -1,5 +1,184 @@
 {% extends "layout.html" %}
-{% block page_title %}Projects{% endblock %}
+{% block page_title %}My Projects{% endblock %}
+{% block page_subtitle %}Track budgets, spending and progress across your projects{% endblock %}
+
 {% block content %}
-<p style="color:var(--text-muted);">Projects coming soon.</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<!-- Header Actions -->
+<div class="flex-between mb-24">
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+
+    <!-- Search -->
+    <div style="position:relative;">
+      <i data-lucide="search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); width:15px; height:15px; color:var(--text-muted);"></i>
+      <input type="text" id="searchInput" placeholder="Search projects..."
+             value="{{ search }}"
+             style="padding:8px 12px 8px 34px; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-card); color:var(--text-primary); font-size:13px; width:220px; outline:none;"
+             onkeyup="filterProjects()" />
+    </div>
+
+    <!-- Status Filter -->
+    <select onchange="applyFilter(this, 'status')"
+            style="padding:8px 12px; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-card); color:var(--text-primary); font-size:13px; cursor:pointer; outline:none;">
+      <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+      <option value="planning" {% if status_filter == 'planning' %}selected{% endif %}>Planning</option>
+      <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+      <option value="on_hold" {% if status_filter == 'on_hold' %}selected{% endif %}>On Hold</option>
+      <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+    </select>
+
+  </div>
+
+  <a href="{{ url_for('projects.new_project') }}" class="btn btn-primary">
+    <i data-lucide="plus" style="width:16px; height:16px;"></i>
+    New Project
+  </a>
+</div>
+
+<!-- Projects Table -->
+<div class="card">
+  {% if projects %}
+  <div class="table-wrapper">
+    <table id="projectsTable">
+      <thead>
+        <tr>
+          <th data-sort>Project</th>
+          <th data-sort>Linked Deal</th>
+          <th data-sort>Status</th>
+          <th data-sort>Timeline</th>
+          <th data-sort>Budget</th>
+          <th>Spent</th>
+          <th data-sort>Updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for project in projects %}
+        {% set spent = spent_map.get(project.id, 0) %}
+        {% set budget = project.total_budget or 0 %}
+        {% set pct = (spent / budget * 100) if budget > 0 else 0 %}
+        <tr class="project-row">
+          <td>
+            <div style="font-weight:600; color:var(--text-primary);">{{ project.name }}</div>
+            {% if project.address %}
+            <div style="font-size:12px; color:var(--text-muted);">{{ project.address }}</div>
+            {% endif %}
+          </td>
+          <td style="font-size:13px; color:var(--text-secondary);">
+            {% if project.deal_id and deal_map.get(project.deal_id) %}
+              <a href="{{ url_for('deals.edit_deal', deal_id=project.deal_id) }}"
+                 style="color:var(--navy); text-decoration:none; font-weight:500;">
+                {{ deal_map.get(project.deal_id) }}
+              </a>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% set status_badge = {'planning': 'pending', 'active': 'active', 'on_hold': 'archived', 'completed': 'sold'} %}
+            <span class="badge badge-{{ status_badge.get(project.status, 'archived') }}">
+              {{ project.status.replace('_', ' ').title() }}
+            </span>
+          </td>
+          <td style="font-size:13px; color:var(--text-secondary); white-space:nowrap;">
+            {% if project.start_date %}
+              {{ project.start_date.strftime('%b %d, %Y') }}{% if project.end_date %} → {{ project.end_date.strftime('%b %d, %Y') }}{% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td style="font-weight:600; color:var(--text-primary);">
+            {% if budget > 0 %}${{ '{:,.0f}'.format(budget) }}{% else %}—{% endif %}
+          </td>
+          <td style="min-width:140px;">
+            {% if budget > 0 %}
+              <div style="font-size:12px; font-weight:600; color:{% if pct > 100 %}var(--danger){% elif pct > 85 %}var(--warning){% else %}var(--text-secondary){% endif %}; margin-bottom:4px;">
+                ${{ '{:,.0f}'.format(spent) }} ({{ '{:.0f}'.format(pct) }}%)
+              </div>
+              <div style="height:6px; background:var(--bg-hover); border-radius:3px; overflow:hidden;">
+                <div style="height:100%; width:{{ [pct, 100] | min }}%; border-radius:3px; background:{% if pct > 100 %}var(--danger){% elif pct > 85 %}var(--warning){% else %}var(--success){% endif %};"></div>
+              </div>
+            {% elif spent > 0 %}
+              <span style="font-size:12px; color:var(--text-secondary);">${{ '{:,.0f}'.format(spent) }}</span>
+            {% else %}
+              <span style="font-size:12px; color:var(--text-muted);">—</span>
+            {% endif %}
+          </td>
+          <td style="font-size:13px; color:var(--text-muted); white-space:nowrap;">
+            {{ project.updated_at.strftime('%b %d, %Y') }}
+          </td>
+          <td>
+            <div style="display:flex; gap:4px;">
+              <a href="{{ url_for('projects.edit_project', project_id=project.id) }}"
+                 class="btn btn-ghost btn-sm" title="Edit">
+                <i data-lucide="pencil" style="width:14px; height:14px;"></i>
+              </a>
+              <form method="POST" action="{{ url_for('projects.delete_project', project_id=project.id) }}"
+                    style="display:inline;"
+                    onsubmit="return confirm('Delete this project? All of its budget items, transactions and draw requests will also be deleted. This cannot be undone.')">
+                <button type="submit" class="btn btn-ghost btn-sm"
+                        style="color:var(--danger);" title="Delete">
+                  <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Table Footer -->
+  <div style="padding:14px 20px; border-top:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between;">
+    <span style="font-size:13px; color:var(--text-muted);">{{ projects|length }} project{{ 's' if projects|length != 1 }}</span>
+  </div>
+
+  {% else %}
+  <div class="empty-state" style="padding:80px 40px;">
+    <div class="empty-state-icon" style="width:72px; height:72px;">
+      <i data-lucide="clipboard-list" style="width:32px; height:32px;"></i>
+    </div>
+    <div class="empty-state-title">No projects found</div>
+    <div class="empty-state-text">
+      {% if search or status_filter != 'all' %}
+        No projects match your current filters. Try adjusting your search.
+      {% else %}
+        Create your first project to start tracking budgets and spending
+      {% endif %}
+    </div>
+    <a href="{{ url_for('projects.new_project') }}" class="btn btn-primary">
+      <i data-lucide="plus" style="width:16px; height:16px;"></i>
+      Create a Project
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function applyFilter(select, param) {
+  const url = new URL(window.location.href);
+  url.searchParams.set(param, select.value);
+  window.location.href = url.toString();
+}
+
+function filterProjects() {
+  const input = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('.project-row').forEach(function(row) {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(input) ? '' : 'none';
+  });
+}
+</script>
 {% endblock %}

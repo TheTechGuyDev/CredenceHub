@@ -1,0 +1,124 @@
+{% extends "layout.html" %}
+{% block page_title %}{% if project %}Edit Project{% else %}New Project{% endif %}{% endblock %}
+{% block page_subtitle %}{% if project %}Update your project details{% else %}Set up a project to track budget and spending{% endif %}{% endblock %}
+
+{% block content %}
+
+<div style="max-width:720px; margin:0 auto;">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST"
+        action="{% if project %}{{ url_for('projects.edit_project', project_id=project.id) }}{% else %}{{ url_for('projects.new_project') }}{% endif %}">
+
+    <!-- Project Details -->
+    <div class="card mb-24">
+      <div class="card-header">
+        <span class="card-title">Project Details</span>
+      </div>
+      <div class="card-body">
+
+        <div class="form-group">
+          <label class="form-label">Project Name <span style="color:var(--danger);">*</span></label>
+          <input type="text" name="name" class="form-control"
+                 placeholder="e.g. 123 Main Street Build"
+                 value="{{ project.name if project else '' }}" required />
+          <p class="form-text">Give this project a memorable name</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Property Address</label>
+          <input type="text" name="address" class="form-control"
+                 placeholder="e.g. 123 Main Street, Calgary, AB"
+                 value="{{ project.address if project and project.address else '' }}" />
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Linked Deal Analysis</label>
+            <select name="deal_id" class="form-control">
+              <option value="">— No linked deal —</option>
+              {% for deal in deals %}
+              <option value="{{ deal.id }}"
+                      {% if project and project.deal_id == deal.id %}selected{% endif %}>
+                {{ deal.name }}
+              </option>
+              {% endfor %}
+            </select>
+            <p class="form-text">Connect this project to one of your deal analyses</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-control">
+              {% for s in statuses %}
+              <option value="{{ s }}"
+                      {% if (project and project.status == s) or (not project and s == 'planning') %}selected{% endif %}>
+                {{ s.replace('_', ' ').title() }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Timeline & Budget -->
+    <div class="card mb-24">
+      <div class="card-header">
+        <span class="card-title">Timeline &amp; Budget</span>
+      </div>
+      <div class="card-body">
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div class="form-group">
+            <label class="form-label">Start Date</label>
+            <input type="date" name="start_date" class="form-control"
+                   value="{{ project.start_date.strftime('%Y-%m-%d') if project and project.start_date else '' }}" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Target End Date</label>
+            <input type="date" name="end_date" class="form-control"
+                   value="{{ project.end_date.strftime('%Y-%m-%d') if project and project.end_date else '' }}" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Total Budget ($)</label>
+          <input type="number" name="total_budget" class="form-control"
+                 placeholder="e.g. 250000" min="0" step="any"
+                 value="{{ project.total_budget if project and project.total_budget else '' }}" />
+          <p class="form-text">Overall project budget — you will build the detailed line-item budget next</p>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-control" rows="4"
+                    placeholder="Scope, key contacts, milestones...">{{ project.notes if project and project.notes else '' }}</textarea>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <a href="{{ url_for('projects.index') }}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <i data-lucide="check" style="width:16px; height:16px;"></i>
+        {% if project %}Save Changes{% else %}Create Project{% endif %}
+      </button>
+    </div>
+
+  </form>
+
+</div>
+
+{% endblock %}
