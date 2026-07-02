@@ -1,6 +1,6 @@
 # ─────────────────────────────────────────
 # CREDENCEHUB — DEAL CALCULATORS
-# Referenced: Rehab Valuator / Daniil Kleyman
+# CredenceHub Analysis Engine — industry-standard real estate mathematics
 # Methodology for MAO and MLV calculations
 # ─────────────────────────────────────────
 
@@ -27,7 +27,7 @@ def calculate_deal(strategy, inputs):
 
 
 # ── 1A. Wholesale ──
-# Uses Rehab Valuator MAO methodology
+# Uses industry-standard MAO methodology
 def calculate_wholesale(inputs):
     purchase_price = safe_float(inputs.get('purchase_price'))
     assignment_fee = safe_float(inputs.get('assignment_fee'))
@@ -38,7 +38,7 @@ def calculate_wholesale(inputs):
     deal_type = inputs.get('deal_type', 'rehab')
 
     if deal_type == 'land':
-        # Rehab Valuator Land Wholesale MAO
+        # Land Wholesale MAO (Maximum Allowable Offer)
         # Wholesaler assigns a land deal to a developer
         # Developer uses Spec Build methodology
         target_profit_margin = safe_float(inputs.get('target_profit_margin'), 25) / 100
@@ -71,7 +71,7 @@ def calculate_wholesale(inputs):
         }
 
     else:
-        # Standard Rehab Valuator MAO for Fix & Flip wholesale
+        # Standard MAO for Fix & Flip wholesale
         # MAO = (ARV x repair_factor) - Repair Cost - Assignment Fee
         mao_70 = (arv * 0.70) - repair_cost - assignment_fee
         mao_75 = (arv * 0.75) - repair_cost - assignment_fee
@@ -124,7 +124,7 @@ def calculate_fix_flip(inputs):
     coc_return = (profit / cash_invested * 100) if cash_invested > 0 else 0
     break_even_arv = total_investment
 
-    # Rehab Valuator style MAO check
+    # Industry-standard MAO check
     mao_check_70 = (arv * 0.70) - rehab_cost
     is_good_deal = purchase_price <= mao_check_70
 
@@ -189,8 +189,8 @@ def calculate_brrrr(inputs):
     }
 
 
-# ── 1D. New Construction — Rehab Valuator Methodology ──
-# Daniil Kleyman: Spec Build + Build to Rent
+# ── 1D. New Construction — CredenceHub Methodology ──
+# Spec Build + Build to Rent analysis
 def calculate_construction(inputs):
     exit_strategy = inputs.get('exit_strategy', 'spec_build')
 
@@ -202,7 +202,7 @@ def calculate_construction(inputs):
 
 def _calculate_spec_build(inputs):
     """
-    Rehab Valuator Spec Build (Build and Sell)
+    CredenceHub Spec Build (Build and Sell)
     MLV = (ARV x (1 - Target Profit Margin)) - Construction Cost
           - Soft Costs - Holding Costs - Financing Costs - Selling Costs
     MAO = MLV - Assignment Fee (if wholesaling the land)
@@ -222,7 +222,7 @@ def _calculate_spec_build(inputs):
     contingency = (construction_cost + soft_costs) * (contingency_pct / 100)
     total_other_costs = construction_cost + soft_costs + holding_costs + financing_costs + selling_costs + contingency
 
-    # Rehab Valuator Core Formula
+    # CredenceHub Core Formula
     profit_factor = 1 - target_profit_margin
     adjusted_arv = arv * profit_factor
     maximum_land_value = adjusted_arv - total_other_costs
@@ -258,7 +258,7 @@ def _calculate_spec_build(inputs):
 
 def _calculate_build_to_rent(inputs):
     """
-    Rehab Valuator Build to Rent (Build and Hold)
+    CredenceHub Build to Rent (Build and Hold)
     NOI = Gross Annual Rent - Annual Operating Expenses
     As-Built Value = NOI / Market Cap Rate
     MLV = (As-Built Value x (1 - Desired Equity Margin))
@@ -276,7 +276,7 @@ def _calculate_build_to_rent(inputs):
     floor_area = safe_float(inputs.get('floor_area'), 1)
     contingency_pct = safe_float(inputs.get('contingency_pct'), 0)
 
-    # Rehab Valuator Build to Rent Core Formula
+    # CredenceHub Build to Rent Core Formula
     noi = gross_annual_rent - annual_operating_expenses
     as_built_value = noi / market_cap_rate if market_cap_rate > 0 else 0
     equity_factor = 1 - desired_equity_margin

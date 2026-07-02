@@ -100,11 +100,11 @@
               </div>
             </div>
 
-            <!-- Land Wholesale Inputs (Rehab Valuator MLV Method) -->
+            <!-- Land Wholesale Inputs (Maximum Land Value Method) -->
             <div id="landInputs" style="display:{% if inputs.get('deal_type') == 'land' %}grid{% else %}none{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group" style="grid-column:1/-1;">
                 <div style="background:rgba(15,45,94,0.06); border:1px solid rgba(15,45,94,0.15); border-radius:var(--radius-sm); padding:12px 16px;">
-                  <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;">Rehab Valuator — Maximum Land Value Formula</p>
+                  <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;">CredenceHub — Maximum Land Value Formula</p>
                   <p style="font-size:12px; color:var(--text-muted);">MLV = (ARV × (1 − Profit Margin)) − Construction − Soft − Holding − Financing − Selling Costs</p>
                   <p style="font-size:12px; color:var(--text-muted);">MAO = MLV − Assignment Fee</p>
                 </div>
@@ -118,7 +118,7 @@
                 <label class="form-label">Target Profit Margin (%)</label>
                 <input type="number" name="input_target_profit_margin" class="form-control calc-input"
                        value="{{ inputs.get('target_profit_margin', 25) }}" placeholder="25" step="1" min="15" max="40" />
-                <p class="form-text">Rehab Valuator recommended: 22–25%</p>
+                <p class="form-text">Industry standard: 22–25%</p>
               </div>
               <div class="form-group">
                 <label class="form-label">Construction Cost ($)</label>
@@ -263,7 +263,7 @@
             <!-- Formula Info Box -->
             <div style="background:rgba(15,45,94,0.06); border:1px solid rgba(15,45,94,0.15); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:16px;">
               <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;" id="formulaLabel">
-                {% if inputs.get('exit_strategy') == 'build_to_rent' %}Rehab Valuator — Build to Rent Formula{% else %}Rehab Valuator — Spec Build Formula{% endif %}
+                {% if inputs.get('exit_strategy') == 'build_to_rent' %}CredenceHub — Build to Rent Formula{% else %}CredenceHub — Spec Build Formula{% endif %}
               </p>
               <p style="font-size:12px; color:var(--text-muted);" id="formulaText">
                 {% if inputs.get('exit_strategy') == 'build_to_rent' %}
@@ -285,7 +285,7 @@
                 <label class="form-label">Target Profit Margin (%)</label>
                 <input type="number" name="input_target_profit_margin" class="form-control calc-input"
                        value="{{ inputs.get('target_profit_margin', 25) }}" placeholder="25" step="1" />
-                <p class="form-text">Rehab Valuator recommended: 22–25%</p>
+                <p class="form-text">Industry standard: 22–25%</p>
               </div>
               <div class="form-group">
                 <label class="form-label">Construction Cost ($)</label>
@@ -358,7 +358,7 @@
                 <label class="form-label">Desired Equity Margin (%)</label>
                 <input type="number" name="input_desired_equity_margin" class="form-control calc-input"
                        value="{{ inputs.get('desired_equity_margin', 20) }}" placeholder="20" step="1" />
-                <p class="form-text">Rehab Valuator recommended: 20%</p>
+                <p class="form-text">Industry standard: 20%</p>
               </div>
               <div class="form-group">
                 <label class="form-label">Construction Cost ($)</label>
@@ -669,10 +669,10 @@ function toggleExitStrategy(strategy) {
   if (rent) rent.style.display = strategy === 'build_to_rent' ? 'grid' : 'none';
 
   if (strategy === 'build_to_rent') {
-    if (label) label.textContent = 'Rehab Valuator — Build to Rent Formula';
+    if (label) label.textContent = 'CredenceHub — Build to Rent Formula';
     if (text) text.textContent = 'MLV = (NOI ÷ Cap Rate × (1 − Equity Margin)) − Construction − Soft − Holding − Financing Costs';
   } else {
-    if (label) label.textContent = 'Rehab Valuator — Spec Build Formula';
+    if (label) label.textContent = 'CredenceHub — Spec Build Formula';
     if (text) text.textContent = 'MLV = (ARV × (1 − Profit Margin)) − Construction − Soft − Holding − Financing − Selling Costs';
   }
 }
