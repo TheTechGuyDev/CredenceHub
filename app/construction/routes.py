@@ -26,9 +26,21 @@ def get_city_data(city, province_state):
     return city_data
 
 
+def get_footprint_sqft(project):
+    """
+    'Total Floor Area' entered by the user is the GROSS floor area across every
+    storey of the building (standard real-estate definition, matches the field
+    label). The ground footprint used for foundation, roof and land sizing is
+    that total spread evenly across the number of storeys.
+    """
+    stories = max(project.stories, 1)
+    return project.floor_area_sqft / stories
+
+
 def generate_bom(project, city_data):
-    floor_area = project.floor_area_sqft
-    stories = project.stories
+    total_area = project.floor_area_sqft          # gross floor area, ALL storeys combined
+    stories = max(project.stories, 1)
+    footprint = total_area / stories               # ground footprint of ONE storey
     foundation = project.foundation_type
     construction_type = project.construction_type
     finish_level = project.finish_level
@@ -40,32 +52,35 @@ def generate_bom(project, city_data):
         'basic': 0.80, 'standard': 1.00, 'premium': 1.30, 'luxury': 1.75
     }.get(finish_level, 1.0)
 
-    perimeter = (floor_area ** 0.5) * 4
+    # Perimeter/wall area are based on one storey's footprint, stacked
+    # vertically for each additional storey.
+    perimeter = (footprint ** 0.5) * 4
     wall_area = perimeter * 9 * stories
 
     bom = []
 
-    # Foundation & Structure
+    # Foundation & Structure — sized off the ground footprint, not total floor area
     if foundation == 'slab':
-        concrete_cy = round(floor_area * 0.037, 1)
+        concrete_cy = round(footprint * 0.037, 1)
         bom.append({'category': 'Foundation & Structure', 'name': 'Concrete — Slab', 'quantity': concrete_cy, 'unit': 'cu yd', 'unit_cost': round(140 * mat_idx, 2)})
     elif foundation == 'basement':
-        concrete_cy = round(floor_area * 0.055, 1)
+        concrete_cy = round(footprint * 0.055, 1)
         bom.append({'category': 'Foundation & Structure', 'name': 'Concrete — Basement Walls & Floor', 'quantity': concrete_cy, 'unit': 'cu yd', 'unit_cost': round(145 * mat_idx, 2)})
-        rebar_lbs = round(floor_area * 1.2, 0)
+        rebar_lbs = round(footprint * 1.2, 0)
         bom.append({'category': 'Foundation & Structure', 'name': 'Rebar', 'quantity': rebar_lbs, 'unit': 'lbs', 'unit_cost': round(0.65 * mat_idx, 2)})
     else:
-        concrete_cy = round(floor_area * 0.025, 1)
+        concrete_cy = round(footprint * 0.025, 1)
         bom.append({'category': 'Foundation & Structure', 'name': 'Concrete — Crawl Space Footings', 'quantity': concrete_cy, 'unit': 'cu yd', 'unit_cost': round(138 * mat_idx, 2)})
 
+    # Structural material scales with total floor area (already sums all storeys)
     if construction_type == 'wood_frame':
-        lumber_bf = round(floor_area * stories * 3.5, 0)
+        lumber_bf = round(total_area * 3.5, 0)
         bom.append({'category': 'Foundation & Structure', 'name': 'Structural Lumber', 'quantity': lumber_bf, 'unit': 'board ft', 'unit_cost': round(0.85 * mat_idx, 2)})
     elif construction_type == 'concrete_block':
         blocks = round(wall_area * 1.125, 0)
         bom.append({'category': 'Foundation & Structure', 'name': 'Concrete Blocks', 'quantity': blocks, 'unit': 'units', 'unit_cost': round(2.20 * mat_idx, 2)})
     else:
-        steel_tons = round(floor_area * stories * 0.006, 1)
+        steel_tons = round(total_area * 0.006, 1)
         bom.append({'category': 'Foundation & Structure', 'name': 'Structural Steel', 'quantity': steel_tons, 'unit': 'tons', 'unit_cost': round(1800 * mat_idx, 2)})
 
     # Framing & Walls
@@ -75,11 +90,11 @@ def generate_bom(project, city_data):
     bom.append({'category': 'Framing & Walls', 'name': 'OSB Sheathing', 'quantity': osb_sheets, 'unit': 'sheets', 'unit_cost': round(28 * mat_idx, 2)})
     insulation_sqft = round(wall_area * 1.1, 0)
     bom.append({'category': 'Framing & Walls', 'name': 'Insulation (R-20)', 'quantity': insulation_sqft, 'unit': 'sq ft', 'unit_cost': round(0.75 * mat_idx, 2)})
-    drywall_sheets = round((wall_area + floor_area * stories) / 32, 0)
+    drywall_sheets = round((wall_area + total_area) / 32, 0)
     bom.append({'category': 'Framing & Walls', 'name': 'Drywall / Gypsum Board', 'quantity': drywall_sheets, 'unit': 'sheets', 'unit_cost': round(15 * mat_idx, 2)})
 
-    # Roofing
-    roof_sqft = round(floor_area * 1.15, 0)
+    # Roofing — covers only the topmost footprint, not the whole building's floor area
+    roof_sqft = round(footprint * 1.15, 0)
     bom.append({'category': 'Roofing', 'name': 'Roof Decking (OSB)', 'quantity': round(roof_sqft / 32, 0), 'unit': 'sheets', 'unit_cost': round(28 * mat_idx, 2)})
     bom.append({'category': 'Roofing', 'name': 'Roofing Underlayment', 'quantity': round(roof_sqft / 400, 1), 'unit': 'rolls', 'unit_cost': round(85 * mat_idx, 2)})
     if finish_level in ['basic', 'standard']:
@@ -88,25 +103,25 @@ def generate_bom(project, city_data):
         bom.append({'category': 'Roofing', 'name': 'Metal Roofing', 'quantity': round(roof_sqft, 0), 'unit': 'sq ft', 'unit_cost': round(4.50 * mat_idx * finish_multiplier, 2)})
     bom.append({'category': 'Roofing', 'name': 'Fascia & Soffit', 'quantity': round(perimeter, 0), 'unit': 'linear ft', 'unit_cost': round(8 * mat_idx, 2)})
 
-    # Windows & Doors
-    window_count = max(6, round(floor_area / 120 * stories, 0))
+    # Windows & Doors — scale with total floor area (already sums all storeys)
+    window_count = max(6, round(total_area / 120, 0))
     bom.append({'category': 'Windows & Doors', 'name': 'Windows (standard size)', 'quantity': window_count, 'unit': 'units', 'unit_cost': round(450 * mat_idx * finish_multiplier, 2)})
     bom.append({'category': 'Windows & Doors', 'name': 'Exterior Doors', 'quantity': 2, 'unit': 'units', 'unit_cost': round(800 * mat_idx * finish_multiplier, 2)})
-    interior_doors = max(4, round(floor_area / 200 * stories, 0))
+    interior_doors = max(4, round(total_area / 200, 0))
     bom.append({'category': 'Windows & Doors', 'name': 'Interior Doors', 'quantity': interior_doors, 'unit': 'units', 'unit_cost': round(280 * mat_idx * finish_multiplier, 2)})
 
     # Electrical
     bom.append({'category': 'Electrical', 'name': 'Electrical Panel (200A)', 'quantity': 1, 'unit': 'unit', 'unit_cost': round(1800 * labor_idx, 2)})
-    wiring_lf = round(floor_area * stories * 3.5, 0)
+    wiring_lf = round(total_area * 3.5, 0)
     bom.append({'category': 'Electrical', 'name': 'Romex Wiring', 'quantity': wiring_lf, 'unit': 'linear ft', 'unit_cost': round(0.55 * mat_idx, 2)})
-    outlets = round(floor_area * stories / 50, 0)
+    outlets = round(total_area / 50, 0)
     bom.append({'category': 'Electrical', 'name': 'Outlets & Switches', 'quantity': outlets, 'unit': 'units', 'unit_cost': round(45 * labor_idx, 2)})
-    fixtures = round(floor_area * stories / 80, 0)
+    fixtures = round(total_area / 80, 0)
     bom.append({'category': 'Electrical', 'name': 'Light Fixtures', 'quantity': fixtures, 'unit': 'units', 'unit_cost': round(85 * mat_idx * finish_multiplier, 2)})
 
     # Plumbing
-    bathrooms = max(1, round(floor_area / 500, 0))
-    pipe_lf = round(floor_area * stories * 2.2, 0)
+    bathrooms = max(1, round(total_area / 500, 0))
+    pipe_lf = round(total_area * 2.2, 0)
     bom.append({'category': 'Plumbing', 'name': 'PEX Piping', 'quantity': pipe_lf, 'unit': 'linear ft', 'unit_cost': round(0.85 * mat_idx, 2)})
     bom.append({'category': 'Plumbing', 'name': 'Toilets', 'quantity': bathrooms, 'unit': 'units', 'unit_cost': round(380 * mat_idx * finish_multiplier, 2)})
     bom.append({'category': 'Plumbing', 'name': 'Sinks & Faucets', 'quantity': bathrooms + 1, 'unit': 'units', 'unit_cost': round(320 * mat_idx * finish_multiplier, 2)})
@@ -114,16 +129,16 @@ def generate_bom(project, city_data):
     bom.append({'category': 'Plumbing', 'name': 'Water Heater', 'quantity': 1, 'unit': 'unit', 'unit_cost': round(1200 * mat_idx, 2)})
 
     # HVAC
-    btu = round(floor_area * stories * 25, 0)
-    bom.append({'category': 'HVAC', 'name': f'Furnace / AC ({int(btu/12000)} ton)', 'quantity': 1, 'unit': 'unit', 'unit_cost': round(4500 * labor_idx * finish_multiplier, 2)})
-    ductwork_lf = round(floor_area * stories * 0.8, 0)
+    btu = round(total_area * 25, 0)
+    bom.append({'category': 'HVAC', 'name': f'Furnace / AC ({max(1, int(btu/12000))} ton)', 'quantity': 1, 'unit': 'unit', 'unit_cost': round(4500 * labor_idx * finish_multiplier, 2)})
+    ductwork_lf = round(total_area * 0.8, 0)
     bom.append({'category': 'HVAC', 'name': 'Ductwork', 'quantity': ductwork_lf, 'unit': 'linear ft', 'unit_cost': round(12 * labor_idx, 2)})
 
     # Finishes
-    bom.append({'category': 'Finishes', 'name': 'Flooring', 'quantity': round(floor_area * stories, 0), 'unit': 'sq ft', 'unit_cost': round(5.50 * mat_idx * finish_multiplier, 2)})
+    bom.append({'category': 'Finishes', 'name': 'Flooring', 'quantity': round(total_area, 0), 'unit': 'sq ft', 'unit_cost': round(5.50 * mat_idx * finish_multiplier, 2)})
     paint_gallons = round(wall_area / 350, 0)
     bom.append({'category': 'Finishes', 'name': 'Paint (Interior & Exterior)', 'quantity': paint_gallons, 'unit': 'gallons', 'unit_cost': round(42 * mat_idx * finish_multiplier, 2)})
-    cabinet_lf = round(10 + (floor_area / 300), 0)
+    cabinet_lf = round(10 + (total_area / 300), 0)
     bom.append({'category': 'Finishes', 'name': 'Kitchen Cabinets', 'quantity': cabinet_lf, 'unit': 'linear ft', 'unit_cost': round(280 * mat_idx * finish_multiplier, 2)})
     bom.append({'category': 'Finishes', 'name': 'Countertops', 'quantity': round(cabinet_lf * 1.5, 0), 'unit': 'sq ft', 'unit_cost': round(65 * mat_idx * finish_multiplier, 2)})
     bathroom_tile = round(bathrooms * 80, 0)
@@ -163,7 +178,7 @@ def get_cost_summary(project, city_data):
         categories[item.category]['subtotal'] += line_total
 
     total_permits = sum(p.estimated_fee for p in permit_items if p.is_required)
-    land_cost = city_data.land_cost_sqft * project.floor_area_sqft if city_data else 0
+    land_cost = city_data.land_cost_sqft * get_footprint_sqft(project) if city_data else 0
     labor_cost = total_materials * 0.65
     hard_costs = total_materials + labor_cost
     soft_costs = total_permits

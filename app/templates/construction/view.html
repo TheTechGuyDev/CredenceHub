@@ -558,6 +558,12 @@ function renderCharts() {
   const categoryLabels = [{% for name in categories.keys() %}'{{ name }}',{% endfor %}];
   const categoryValues = [{% for data in categories.values() %}{{ data.subtotal|round|int }},{% endfor %}];
 
+  // Canvas 2D does not understand CSS custom properties (e.g. 'var(--bg-card)') —
+  // it needs an actual resolved color value, or Chart.js throws while drawing
+  // and the whole renderCharts() call aborts silently (both charts stay blank).
+  // Resolve the live value from the page so it still matches light/dark theme.
+  const cardBg = getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#ffffff';
+
   // Pie Chart
   const pieCtx = document.getElementById('costPieChart');
   if (pieCtx) {
@@ -575,7 +581,7 @@ function renderCharts() {
           ],
           backgroundColor: ['#0F2D5E','#F5A623','#38a169','#3182ce','#718096'],
           borderWidth: 3,
-          borderColor: 'var(--bg-card)'
+          borderColor: cardBg
         }]
       },
       options: {
