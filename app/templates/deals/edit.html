@@ -4,6 +4,18 @@
 
 {% block content %}
 
+<!-- Top Action Bar -->
+<div class="flex-between mb-24">
+  <a href="{{ url_for('deals.index') }}" class="btn btn-outline btn-sm">
+    <i data-lucide="arrow-left" style="width:14px; height:14px;"></i>
+    Back
+  </a>
+  <a href="{{ url_for('deals.export_pdf', deal_id=deal.id) }}" class="btn btn-outline btn-sm">
+    <i data-lucide="file-down" style="width:14px; height:14px;"></i>
+    Export
+  </a>
+</div>
+
 <div style="display:grid; grid-template-columns:1fr 320px; gap:20px; align-items:start;">
 
   <!-- Left: Input Form -->

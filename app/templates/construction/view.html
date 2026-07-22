@@ -20,6 +20,10 @@
       <i data-lucide="share-2" style="width:14px; height:14px;"></i>
       Share
     </button>
+    <a href="{{ url_for('construction.export_pdf', project_id=project.id) }}" class="btn btn-outline btn-sm">
+      <i data-lucide="file-down" style="width:14px; height:14px;"></i>
+      Export
+    </a>
     <button class="btn btn-primary btn-sm" onclick="window.print()">
       <i data-lucide="printer" style="width:14px; height:14px;"></i>
       Print Report

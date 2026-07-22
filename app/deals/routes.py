@@ -1,9 +1,11 @@
 import json
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required, current_user
 from app import db
 from app.deals import deals
 from app.models import Deal, DealScenario, ActivityLog
+from app.utils.calculators import calculate_deal
+from app.utils.pdf_reports import generate_deal_pdf
 
 
 def log_activity(user_id, action, entity_type=None, entity_id=None, entity_name=None):
@@ -104,6 +106,28 @@ def view_deal(deal_id):
     )
 
 
+@deals.route('/<int:deal_id>/export')
+@login_required
+def export_pdf(deal_id):
+    deal = Deal.query.filter_by(id=deal_id, user_id=current_user.id).first_or_404()
+    inputs = json.loads(deal.inputs or '{}')
+    outputs = json.loads(deal.outputs or '{}')
+
+    prepared_by = None
+    if current_user.profile and current_user.profile.company_name:
+        prepared_by = current_user.profile.company_name
+
+    pdf_buffer = generate_deal_pdf(deal, inputs, outputs, prepared_by=prepared_by)
+    filename = f"{deal.name.replace(' ', '_')}_{deal.strategy}_Analysis.pdf"
+
+    return send_file(
+        pdf_buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=filename
+    )
+
+
 @deals.route('/<int:deal_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_deal(deal_id):
@@ -130,7 +154,6 @@ def edit_deal(deal_id):
 
         deal.inputs = json.dumps(inputs)
 
-        from app.utils.calculators import calculate_deal
         outputs = calculate_deal(deal.strategy, inputs)
         deal.outputs = json.dumps(outputs)
 
@@ -174,7 +197,6 @@ def calculate(deal_id):
     data = request.get_json()
     inputs = data.get('inputs', {})
 
-    from app.utils.calculators import calculate_deal
     outputs = calculate_deal(deal.strategy, inputs)
 
     deal.inputs = json.dumps(inputs)
@@ -204,7 +226,6 @@ def save_scenario(deal_id):
     scenario_name = data.get('name', 'Scenario')
     inputs = data.get('inputs', {})
 
-    from app.utils.calculators import calculate_deal
     outputs = calculate_deal(deal.strategy, inputs)
 
     scenario = DealScenario(

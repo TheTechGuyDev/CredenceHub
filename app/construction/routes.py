@@ -1,10 +1,11 @@
 import json
 import secrets
-from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask import render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required, current_user
 from app import db
 from app.construction import construction
 from app.models import ConstructionProject, BOMItem, PermitItem, CityData, ConstructionAuditLog
+from app.utils.pdf_reports import generate_construction_pdf
 
 
 def log_audit(project_id, user_id, action, details=None):
@@ -311,6 +312,27 @@ def view_project(project_id):
         city_data=city_data,
         audit_logs=audit_logs,
         **summary
+    )
+
+
+@construction.route('/<int:project_id>/export')
+@login_required
+def export_pdf(project_id):
+    project = ConstructionProject.query.filter_by(
+        id=project_id, user_id=current_user.id
+    ).first_or_404()
+
+    city_data = get_city_data(project.city, project.province_state)
+    summary = get_cost_summary(project, city_data)
+
+    pdf_buffer = generate_construction_pdf(project, summary)
+    filename = f"{project.name.replace(' ', '_')}_Construction_Cost_Report.pdf"
+
+    return send_file(
+        pdf_buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=filename
     )
 
 
