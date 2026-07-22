@@ -43,7 +43,7 @@
           <span class="nav-item-icon">
             <i data-lucide="trending-up" style="width:16px; height:16px;"></i>
           </span>
-          <span class="nav-item-text">Deal Analysis</span>
+          <span class="nav-item-text">Project Analysis</span>
         </a>
 
         <a href="{{ url_for('construction.index') }}"
@@ -52,7 +52,7 @@
           <span class="nav-item-icon">
             <i data-lucide="hard-hat" style="width:16px; height:16px;"></i>
           </span>
-          <span class="nav-item-text">Construction Calc</span>
+          <span class="nav-item-text">Construction Cost</span>
           {% if not current_user.is_premium() %}
             <span class="nav-item-badge">Pro</span>
           {% endif %}
@@ -63,10 +63,20 @@
           <span class="nav-item-icon">
             <i data-lucide="map-pin" style="width:16px; height:16px;"></i>
           </span>
-          <span class="nav-item-text">Comps</span>
+          <span class="nav-item-text">Comparables</span>
           {% if not current_user.is_premium() %}
             <span class="nav-item-badge">Pro</span>
           {% endif %}
+        </a>
+
+        <a href="{{ url_for('main.ai_analysis') }}"
+           class="nav-item {% if request.endpoint == 'main.ai_analysis' %}active{% endif %}"
+           onclick="closeMobileSidebar()">
+          <span class="nav-item-icon">
+            <i data-lucide="sparkles" style="width:16px; height:16px;"></i>
+          </span>
+          <span class="nav-item-text">AI &amp; Analysis</span>
+          <span class="nav-item-badge" style="background:var(--info-light,#e6f0ff); color:var(--info,#3182ce);">Soon</span>
         </a>
       </div>
 
@@ -98,7 +108,7 @@
           <span class="nav-item-icon">
             <i data-lucide="folder-kanban" style="width:16px; height:16px;"></i>
           </span>
-          <span class="nav-item-text">Projects</span>
+          <span class="nav-item-text">Project Management</span>
         </a>
 
         <a href="{{ url_for('documents.index') }}"

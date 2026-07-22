@@ -19,7 +19,7 @@
     <!-- Strategy Selector -->
     <div class="card mb-24">
       <div class="card-header">
-        <span class="card-title">Select Investment Strategy</span>
+        <span class="card-title">Select Appropriate Project</span>
       </div>
       <div class="card-body">
         <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;" id="strategyGrid">
@@ -29,7 +29,8 @@
             ('fix_flip', 'Fix & Flip', 'hammer', 'Buy, renovate and sell', '#e65100'),
             ('brrrr', 'BRRRR', 'repeat', 'Buy, Rehab, Rent, Refinance', '#1565c0'),
             ('construction', 'New Construction', 'building-2', 'Ground-up development', '#6a1b9a'),
-            ('commercial', 'Commercial', 'landmark', 'Income-producing property', '#283593')
+            ('commercial', 'Commercial', 'landmark', 'Income-producing property', '#283593'),
+            ('infill', 'Infill & Development', 'trees', 'Build on urban infill lots', '#00695c')
           ] %}
           <label style="cursor:pointer;">
             <input type="radio" name="strategy" value="{{ strategy }}"

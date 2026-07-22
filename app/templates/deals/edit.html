@@ -165,7 +165,7 @@
                        value="{{ inputs.get('purchase_price', '') }}" placeholder="0" step="1000" />
               </div>
               <div class="form-group">
-                <label class="form-label">Rehab Cost ($)</label>
+                <label class="form-label">Renovation Cost ($)</label>
                 <input type="number" name="input_rehab_cost" class="form-control calc-input"
                        value="{{ inputs.get('rehab_cost', '') }}" placeholder="0" step="1000" />
               </div>
@@ -213,7 +213,7 @@
                        value="{{ inputs.get('purchase_price', '') }}" placeholder="0" step="1000" />
               </div>
               <div class="form-group">
-                <label class="form-label">Rehab Cost ($)</label>
+                <label class="form-label">Renovation Cost ($)</label>
                 <input type="number" name="input_rehab_cost" class="form-control calc-input"
                        value="{{ inputs.get('rehab_cost', '') }}" placeholder="0" step="1000" />
               </div>
@@ -402,6 +402,77 @@
               </div>
             </div>
 
+            {% elif deal.strategy == 'infill' %}
+
+            <!-- Formula Info Box -->
+            <div style="background:rgba(15,45,94,0.06); border:1px solid rgba(15,45,94,0.15); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:16px;">
+              <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;">CredenceHub — Infill Formula</p>
+              <p style="font-size:12px; color:var(--text-muted);">
+                MLV = (ARV × (1 − Profit Margin)) − Construction − Soft − Holding − Financing − Selling Costs
+              </p>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Post-Construction ARV ($)</label>
+                <input type="number" name="input_arv" class="form-control calc-input"
+                       value="{{ inputs.get('arv', '') }}" placeholder="650000" step="5000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Target Profit Margin (%)</label>
+                <input type="number" name="input_target_profit_margin" class="form-control calc-input"
+                       value="{{ inputs.get('target_profit_margin', 25) }}" placeholder="25" step="1" />
+                <p class="form-text">Industry standard: 22–25%</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Construction Cost ($)</label>
+                <input type="number" name="input_construction_cost" class="form-control calc-input"
+                       value="{{ inputs.get('construction_cost', '') }}" placeholder="180000" step="5000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Soft Costs ($)</label>
+                <input type="number" name="input_soft_costs" class="form-control calc-input"
+                       value="{{ inputs.get('soft_costs', '') }}" placeholder="8000" step="1000" />
+                <p class="form-text">Permits, plans, engineering, severance/subdivision fees</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Holding Costs ($)</label>
+                <input type="number" name="input_holding_costs" class="form-control calc-input"
+                       value="{{ inputs.get('holding_costs', '') }}" placeholder="4000" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Financing Costs ($)</label>
+                <input type="number" name="input_financing_costs" class="form-control calc-input"
+                       value="{{ inputs.get('financing_costs', '') }}" placeholder="4000" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Selling Costs (% of ARV)</label>
+                <input type="number" name="input_selling_costs_pct" class="form-control calc-input"
+                       value="{{ inputs.get('selling_costs_pct', 6) }}" placeholder="6" step="0.5" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Land / Lot Cost ($) — if known</label>
+                <input type="number" name="input_land_cost" class="form-control calc-input"
+                       value="{{ inputs.get('land_cost', 0) }}" placeholder="0" step="5000" />
+                <p class="form-text">Leave 0 to calculate MLV for the lot</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Assignment Fee ($) — if wholesaling the lot</label>
+                <input type="number" name="input_assignment_fee" class="form-control calc-input"
+                       value="{{ inputs.get('assignment_fee', 0) }}" placeholder="0" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Floor Area (sq ft)</label>
+                <input type="number" name="input_floor_area" class="form-control calc-input"
+                       value="{{ inputs.get('floor_area', '') }}" placeholder="1400" step="100" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Contingency (%)</label>
+                <input type="number" name="input_contingency_pct" class="form-control calc-input"
+                       value="{{ inputs.get('contingency_pct', 0) }}" placeholder="0" step="1" />
+              </div>
+            </div>
+
             {% elif deal.strategy == 'commercial' %}
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group">
@@ -558,6 +629,21 @@
               ('Cost Per Sq Ft', outputs.get('cost_per_sqft', 0), True, False),
             ] %}
             {% endif %}
+
+          {% elif deal.strategy == 'infill' %}
+          {% set items = [
+            ('Maximum Land Value (MLV)', outputs.get('maximum_land_value', 0), True, True),
+            ('Max Allowable Offer (MAO)', outputs.get('mao', 0), True, True),
+            ('Adjusted ARV', outputs.get('adjusted_arv', 0), True, False),
+            ('Developer Profit', outputs.get('developer_profit', 0), True, True),
+            ('Actual Profit Margin', outputs.get('actual_profit_margin', 0), False, False),
+            ('Target Profit Margin', outputs.get('target_profit_margin_pct', 0), False, False),
+            ('ROI', outputs.get('roi', 0), False, False),
+            ('Total Project Cost', outputs.get('total_cost', 0), True, False),
+            ('Selling Costs', outputs.get('selling_costs', 0), True, False),
+            ('Contingency', outputs.get('contingency', 0), True, False),
+            ('Cost Per Sq Ft', outputs.get('cost_per_sqft', 0), True, False),
+          ] %}
 
           {% elif deal.strategy == 'commercial' %}
           {% set items = [
@@ -739,6 +825,15 @@ if (ctx) {
       {{ outputs.get('maximum_land_value', 0) }}
     ];
     {% endif %}
+  {% elif deal.strategy == 'infill' %}
+  const labels = ['ARV', 'Construction', 'Soft Costs', 'Other', 'MLV'];
+  const data = [
+    {{ inputs.get('arv', 0) }},
+    {{ inputs.get('construction_cost', 0) }},
+    {{ inputs.get('soft_costs', 0) }},
+    {{ outputs.get('selling_costs', 0) }},
+    {{ outputs.get('maximum_land_value', 0) }}
+  ];
   {% elif deal.strategy == 'commercial' %}
   const labels = ['Purchase', 'NOI', 'Debt Service', 'Cash Flow'];
   const data = [

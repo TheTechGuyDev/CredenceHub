@@ -19,6 +19,7 @@ def calculate_deal(strategy, inputs):
         'brrrr': calculate_brrrr,
         'construction': calculate_construction,
         'commercial': calculate_commercial,
+        'infill': calculate_infill,
     }
     calc_fn = calculators.get(strategy)
     if calc_fn:
@@ -198,6 +199,63 @@ def calculate_construction(inputs):
         return _calculate_build_to_rent(inputs)
     else:
         return _calculate_spec_build(inputs)
+
+
+# ── 1E. Infill & Development ──
+def calculate_infill(inputs):
+    """
+    Same underlying methodology as New Construction (Spec Build): land + build
+    cost weighed against resale value, scoped for smaller urban infill lots
+    (single lot, teardown/rebuild, laneway/garden suite, small multi-unit, etc).
+
+    CredenceHub Infill Formula
+    MLV = (ARV x (1 - Target Profit Margin)) - Construction Cost
+          - Soft Costs - Holding Costs - Financing Costs - Selling Costs
+    MAO = MLV - Assignment Fee (if wholesaling the lot)
+    """
+    arv = safe_float(inputs.get('arv'))
+    target_profit_margin = safe_float(inputs.get('target_profit_margin'), 25) / 100
+    construction_cost = safe_float(inputs.get('construction_cost'))
+    soft_costs = safe_float(inputs.get('soft_costs'))
+    holding_costs = safe_float(inputs.get('holding_costs'))
+    financing_costs = safe_float(inputs.get('financing_costs'))
+    selling_costs_pct = safe_float(inputs.get('selling_costs_pct'), 6) / 100
+    assignment_fee = safe_float(inputs.get('assignment_fee'), 0)
+    floor_area = safe_float(inputs.get('floor_area'), 1)
+    contingency_pct = safe_float(inputs.get('contingency_pct'), 0)
+
+    selling_costs = arv * selling_costs_pct
+    contingency = (construction_cost + soft_costs) * (contingency_pct / 100)
+    total_other_costs = construction_cost + soft_costs + holding_costs + financing_costs + selling_costs + contingency
+
+    profit_factor = 1 - target_profit_margin
+    adjusted_arv = arv * profit_factor
+    maximum_land_value = adjusted_arv - total_other_costs
+
+    land_cost = safe_float(inputs.get('land_cost'), 0)
+    total_cost = land_cost + total_other_costs
+    developer_profit = arv - total_cost
+    actual_profit_margin = (developer_profit / arv * 100) if arv > 0 else 0
+    roi = (developer_profit / total_cost * 100) if total_cost > 0 else 0
+    cost_per_sqft = total_cost / floor_area if floor_area > 0 else 0
+
+    mao = maximum_land_value - assignment_fee
+
+    return {
+        'maximum_land_value': round(max(maximum_land_value, 0), 2),
+        'mao': round(max(mao, 0), 2),
+        'adjusted_arv': round(adjusted_arv, 2),
+        'total_other_costs': round(total_other_costs, 2),
+        'selling_costs': round(selling_costs, 2),
+        'contingency': round(contingency, 2),
+        'developer_profit': round(developer_profit, 2),
+        'actual_profit_margin': round(actual_profit_margin, 2),
+        'target_profit_margin_pct': round(target_profit_margin * 100, 1),
+        'roi': round(roi, 2),
+        'cost_per_sqft': round(cost_per_sqft, 2),
+        'total_cost': round(total_cost, 2),
+        'is_deal_viable': maximum_land_value > 0,
+    }
 
 
 def _calculate_spec_build(inputs):

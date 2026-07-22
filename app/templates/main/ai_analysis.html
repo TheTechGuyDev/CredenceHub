@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block page_title %}AI &amp; Analysis{% endblock %}
+{% block page_subtitle %}Your real estate research assistant{% endblock %}
+
+{% block content %}
+
+<div style="max-width:640px; margin:60px auto; text-align:center;">
+
+  <div style="width:72px; height:72px; background:var(--navy); border-radius:var(--radius-lg); display:flex; align-items:center; justify-content:center; margin:0 auto 24px;">
+    <i data-lucide="sparkles" style="width:32px; height:32px; color:#ffffff;"></i>
+  </div>
+
+  <div style="display:inline-block; background:var(--info-light,#e6f0ff); color:var(--info,#3182ce); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:5px 14px; border-radius:20px; margin-bottom:16px;">
+    Coming Soon
+  </div>
+
+  <h2 style="font-size:24px; font-weight:700; color:var(--text-primary); margin-bottom:12px;">
+    AI &amp; Analysis
+  </h2>
+
+  <p style="font-size:15px; color:var(--text-secondary); line-height:1.6; margin-bottom:32px;">
+    Ask a question about any city, land parcel, or market — pricing trends, zoning,
+    permit requirements, development costs — and get a sourced, research-backed answer
+    with citations you can verify. Built for investors who need real answers, not guesses.
+  </p>
+
+  <div class="card" style="text-align:left; padding:24px;">
+    <div style="font-size:13px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:16px;">
+      What to expect
+    </div>
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      {% for icon, label, desc in [
+        ('search', 'Live web research', 'Pulls current market data, municipal reports, and zoning information as you ask.'),
+        ('link', 'Sourced answers', 'Every response links back to where the information came from, so you can verify it yourself.'),
+        ('shield-alert', 'Research, not advice', 'Findings are presented as research summaries — always confirm specifics with a local professional before acting.'),
+      ] %}
+      <div style="display:flex; gap:14px; align-items:flex-start;">
+        <div style="width:36px; height:36px; flex-shrink:0; background:var(--bg-hover); border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center;">
+          <i data-lucide="{{ icon }}" style="width:16px; height:16px; color:var(--navy);"></i>
+        </div>
+        <div>
+          <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:2px;">{{ label }}</div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">{{ desc }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <p style="font-size:12px; color:var(--text-muted); margin-top:24px;">
+    We'll let you know the moment this is ready.
+  </p>
+
+</div>
+
+{% endblock %}

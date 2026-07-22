@@ -1,5 +1,5 @@
 from flask import render_template, redirect, url_for
-from flask_login import current_user
+from flask_login import current_user, login_required
 from app.main import main
 
 
@@ -28,3 +28,9 @@ def terms():
 @main.route('/contact')
 def contact():
     return render_template('main/contact.html', title='Contact - CredenceHub')
+
+
+@main.route('/ai-analysis')
+@login_required
+def ai_analysis():
+    return render_template('main/ai_analysis.html', title='AI & Analysis - CredenceHub')
