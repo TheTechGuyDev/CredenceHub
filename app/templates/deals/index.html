@@ -74,7 +74,7 @@
           </td>
           <td>
             <span class="badge badge-{{ deal.strategy }}">
-              {{ deal.strategy.replace('_', ' ').title() }}
+              {{ {'wholesale':'Multifamily','fix_flip':'Fix & Flip','brrrr':'BRRRR','construction':'Land Development','commercial':'Commercial','infill':'New Construction'}.get(deal.strategy, deal.strategy.replace('_', ' ').title()) }}
             </span>
           </td>
           <td style="font-size:13px; color:var(--text-secondary);">

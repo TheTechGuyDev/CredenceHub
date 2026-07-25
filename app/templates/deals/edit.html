@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 {% block page_title %}{{ deal.name }}{% endblock %}
-{% block page_subtitle %}{{ deal.strategy.replace('_', ' ').title() }} Analysis{% endblock %}
+{% block page_subtitle %}{{ {'wholesale':'Multifamily','fix_flip':'Fix & Flip','brrrr':'BRRRR','construction':'Land Development','commercial':'Commercial','infill':'New Construction'}.get(deal.strategy, deal.strategy.replace('_', ' ').title()) }} Analysis{% endblock %}
 
 {% block content %}
 
@@ -68,7 +68,7 @@
           <div style="border-top:1px solid var(--border-color); margin:16px 0; padding-top:16px;">
             <h4 style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:16px;">
               Financial Inputs —
-              <span style="color:var(--navy);">{{ deal.strategy.replace('_', ' ').title() }}</span>
+              <span style="color:var(--navy);">{{ {'wholesale':'Multifamily','fix_flip':'Fix & Flip','brrrr':'BRRRR','construction':'Land Development','commercial':'Commercial','infill':'New Construction'}.get(deal.strategy, deal.strategy.replace('_', ' ').title()) }}</span>
             </h4>
 
             {% if deal.strategy == 'wholesale' %}
@@ -557,7 +557,7 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">Results</span>
-        <span class="badge badge-{{ deal.strategy }}">{{ deal.strategy.replace('_', ' ').title() }}</span>
+        <span class="badge badge-{{ deal.strategy }}">{{ {'wholesale':'Multifamily','fix_flip':'Fix & Flip','brrrr':'BRRRR','construction':'Land Development','commercial':'Commercial','infill':'New Construction'}.get(deal.strategy, deal.strategy.replace('_', ' ').title()) }}</span>
       </div>
       <div class="card-body" style="padding:0;">
 

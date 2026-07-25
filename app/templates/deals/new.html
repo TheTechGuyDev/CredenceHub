@@ -25,12 +25,12 @@
         <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;" id="strategyGrid">
 
           {% for strategy, label, icon, desc, color in [
-            ('wholesale', 'Wholesale', 'tag', 'Quick flip, assign contract', '#2e7d32'),
+            ('wholesale', 'Multifamily', 'tag', 'Acquisition value added', '#2e7d32'),
             ('fix_flip', 'Fix & Flip', 'hammer', 'Buy, renovate and sell', '#e65100'),
             ('brrrr', 'BRRRR', 'repeat', 'Buy, Rehab, Rent, Refinance', '#1565c0'),
-            ('construction', 'New Construction', 'building-2', 'Ground-up development', '#6a1b9a'),
-            ('commercial', 'Commercial', 'landmark', 'Income-producing property', '#283593'),
-            ('infill', 'Infill & Development', 'trees', 'Build on urban infill lots', '#00695c')
+            ('construction', 'Land Development', 'building-2', 'Land & Infill development', '#6a1b9a'),
+            ('commercial', 'Commercial', 'landmark', 'Mixed-use, commercial development', '#283593'),
+            ('infill', 'New Construction', 'trees', 'Build on urban infill lots', '#00695c')
           ] %}
           <label style="cursor:pointer;">
             <input type="radio" name="strategy" value="{{ strategy }}"
