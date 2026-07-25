@@ -30,10 +30,11 @@
     <select onchange="applyFilter(this, 'strategy')"
             style="padding:8px 12px; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-card); color:var(--text-primary); font-size:13px; cursor:pointer; outline:none;">
       <option value="all" {% if strategy_filter == 'all' %}selected{% endif %}>All Strategies</option>
-      <option value="wholesale" {% if strategy_filter == 'wholesale' %}selected{% endif %}>Wholesale</option>
+      <option value="wholesale" {% if strategy_filter == 'wholesale' %}selected{% endif %}>Multifamily</option>
       <option value="fix_flip" {% if strategy_filter == 'fix_flip' %}selected{% endif %}>Fix & Flip</option>
       <option value="brrrr" {% if strategy_filter == 'brrrr' %}selected{% endif %}>BRRRR</option>
-      <option value="construction" {% if strategy_filter == 'construction' %}selected{% endif %}>Construction</option>
+      <option value="construction" {% if strategy_filter == 'construction' %}selected{% endif %}>Land Development</option>
+      <option value="infill" {% if strategy_filter == 'infill' %}selected{% endif %}>New Construction</option>
       <option value="commercial" {% if strategy_filter == 'commercial' %}selected{% endif %}>Commercial</option>
     </select>
 
