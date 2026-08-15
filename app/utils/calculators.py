@@ -30,82 +30,74 @@ def calculate_deal(strategy, inputs):
 # ── 1A. Wholesale ──
 # Uses industry-standard MAO methodology
 def calculate_wholesale(inputs):
+    """
+    CredenceHub Multifamily Formula (per client specification)
+
+    Requires 5 Key Numbers: Gross Rental Income, Effective Gross Income,
+    Operating Expenses, Net Operating Income (NOI), Annual Debt Service.
+
+    Cash Flow            = NOI - Annual Debt Service
+    Cash on Cash Return  = Cash Flow / Down Payment x 100%
+    Deal Cap Rate        = NOI / Purchase Price x 100%
+
+    Decision Framework:
+      1. Cash Flow must be positive
+      2. Cash on Cash Return must beat the bank
+      3. Deal Cap Rate must be higher than Market Cap Rate
+    """
     purchase_price = safe_float(inputs.get('purchase_price'))
-    assignment_fee = safe_float(inputs.get('assignment_fee'))
-    arv = safe_float(inputs.get('arv'))
-    repair_cost = safe_float(inputs.get('repair_cost'))
-    closing_costs = safe_float(inputs.get('closing_costs'), 3000)
-    buyer_profit_pct = safe_float(inputs.get('buyer_profit_pct'), 20)
-    deal_type = inputs.get('deal_type', 'rehab')
+    down_payment = safe_float(inputs.get('down_payment'))
+    gross_rental_income = safe_float(inputs.get('gross_rental_income'))
+    vacancy_credit_loss_pct = safe_float(inputs.get('vacancy_credit_loss_pct'), 5)
+    operating_expenses = safe_float(inputs.get('operating_expenses'))
+    annual_debt_service = safe_float(inputs.get('annual_debt_service'))
+    bank_rate_pct = safe_float(inputs.get('bank_rate_pct'), 5)
+    market_cap_rate_pct = safe_float(inputs.get('market_cap_rate_pct'), 6)
 
-    if deal_type == 'land':
-        # Land Wholesale MAO (Maximum Allowable Offer)
-        # Wholesaler assigns a land deal to a developer
-        # Developer uses Spec Build methodology
-        target_profit_margin = safe_float(inputs.get('target_profit_margin'), 25) / 100
-        construction_cost = safe_float(inputs.get('construction_cost'))
-        soft_costs = safe_float(inputs.get('soft_costs'))
-        holding_costs = safe_float(inputs.get('holding_costs'))
-        financing_costs = safe_float(inputs.get('financing_costs'))
-        selling_costs_pct = safe_float(inputs.get('selling_costs_pct'), 6) / 100
-        selling_costs = arv * selling_costs_pct
+    # 5 Key Numbers
+    effective_gross_income = gross_rental_income * (1 - vacancy_credit_loss_pct / 100)
+    noi = effective_gross_income - operating_expenses
 
-        # Maximum Land Value developer can pay
-        mlv = (arv * (1 - target_profit_margin)) - construction_cost - soft_costs - holding_costs - financing_costs - selling_costs
+    # Core formulas
+    cash_flow = noi - annual_debt_service
+    coc_return = (cash_flow / down_payment * 100) if down_payment > 0 else 0
+    cap_rate = (noi / purchase_price * 100) if purchase_price > 0 else 0
 
-        # Wholesaler MAO = MLV - Assignment Fee
-        mao = mlv - assignment_fee
-        wholesale_profit = assignment_fee
-        developer_profit = arv * target_profit_margin
-        total_developer_costs = construction_cost + soft_costs + holding_costs + financing_costs + selling_costs + mlv
+    # Decision Framework
+    passes_cash_flow = cash_flow > 0
+    passes_coc = coc_return > bank_rate_pct
+    passes_cap_rate = cap_rate > market_cap_rate_pct
+    deal_score = sum([passes_cash_flow, passes_coc, passes_cap_rate])
 
-        return {
-            'deal_type': 'land',
-            'maximum_land_value': round(max(mlv, 0), 2),
-            'mao': round(max(mao, 0), 2),
-            'wholesale_profit': round(wholesale_profit, 2),
-            'developer_profit': round(developer_profit, 2),
-            'selling_costs': round(selling_costs, 2),
-            'total_developer_costs': round(total_developer_costs, 2),
-            'is_deal_viable': mlv > 0,
-            'profit_margin_pct': round(target_profit_margin * 100, 1),
-        }
-
-    else:
-        # Standard MAO for Fix & Flip wholesale
-        # MAO = (ARV x repair_factor) - Repair Cost - Assignment Fee
-        mao_70 = (arv * 0.70) - repair_cost - assignment_fee
-        mao_75 = (arv * 0.75) - repair_cost - assignment_fee
-        mao_80 = (arv * 0.80) - repair_cost - assignment_fee
-
-        # Buyer analysis
-        buyer_purchase = purchase_price + assignment_fee
-        buyer_all_in = buyer_purchase + repair_cost + closing_costs
-        buyer_profit = arv - buyer_all_in
-        buyer_roi = (buyer_profit / buyer_all_in * 100) if buyer_all_in > 0 else 0
-        buyer_profit_at_70 = arv - ((arv * 0.70) + closing_costs)
-
-        # Wholesale profit
-        wholesale_profit = assignment_fee
-        spread = arv - purchase_price - repair_cost - closing_costs
-
-        return {
-            'deal_type': 'rehab',
-            'wholesale_profit': round(wholesale_profit, 2),
-            'mao_70': round(max(mao_70, 0), 2),
-            'mao_75': round(max(mao_75, 0), 2),
-            'mao_80': round(max(mao_80, 0), 2),
-            'buyer_all_in': round(buyer_all_in, 2),
-            'buyer_profit': round(buyer_profit, 2),
-            'buyer_roi': round(buyer_roi, 2),
-            'buyer_profit_at_70': round(buyer_profit_at_70, 2),
-            'spread': round(spread, 2),
-            'is_deal_viable': mao_70 > 0 and buyer_profit > 0,
-        }
+    return {
+        'gross_rental_income': round(gross_rental_income, 2),
+        'effective_gross_income': round(effective_gross_income, 2),
+        'operating_expenses': round(operating_expenses, 2),
+        'noi': round(noi, 2),
+        'annual_debt_service': round(annual_debt_service, 2),
+        'cash_flow': round(cash_flow, 2),
+        'coc_return': round(coc_return, 2),
+        'cap_rate': round(cap_rate, 2),
+        'bank_rate_pct': round(bank_rate_pct, 2),
+        'market_cap_rate_pct': round(market_cap_rate_pct, 2),
+        'passes_cash_flow': passes_cash_flow,
+        'passes_coc': passes_coc,
+        'passes_cap_rate': passes_cap_rate,
+        'deal_score': deal_score,
+        'is_deal_viable': deal_score == 3,
+    }
 
 
 # ── 1B. Fix & Flip ──
 def calculate_fix_flip(inputs):
+    """
+    CredenceHub Fix & Flip Formula (per client specification)
+
+    MAO (Maximum Allowable Offer) = (ARV x 0.70) - Estimated Repair Costs
+    MPP (Maximum Purchase Price)  = ARV - Repair Costs - Holding Costs
+                                     - Closing Costs - Target Net Profit
+    Total Net Profit              = ARV - Total Project Cost
+    """
     purchase_price = safe_float(inputs.get('purchase_price'))
     rehab_cost = safe_float(inputs.get('rehab_cost'))
     arv = safe_float(inputs.get('arv'))
@@ -113,6 +105,8 @@ def calculate_fix_flip(inputs):
     interest_rate = safe_float(inputs.get('interest_rate'), 0)
     loan_amount = safe_float(inputs.get('loan_amount'), 0)
     selling_costs_pct = safe_float(inputs.get('selling_costs_pct'), 8)
+    closing_costs = safe_float(inputs.get('closing_costs'), 3000)
+    target_net_profit = safe_float(inputs.get('target_net_profit'), 0)
     financing_method = inputs.get('financing_method', 'cash')
 
     selling_costs = arv * (selling_costs_pct / 100)
@@ -125,9 +119,16 @@ def calculate_fix_flip(inputs):
     coc_return = (profit / cash_invested * 100) if cash_invested > 0 else 0
     break_even_arv = total_investment
 
-    # Industry-standard MAO check
-    mao_check_70 = (arv * 0.70) - rehab_cost
-    is_good_deal = purchase_price <= mao_check_70
+    # MAO — 70% Rule
+    mao = (arv * 0.70) - rehab_cost
+    is_good_deal = purchase_price <= mao
+
+    # MPP — Maximum Purchase Price backed into from a target profit
+    mpp = arv - rehab_cost - holding_costs - closing_costs - target_net_profit
+
+    # Total Net Profit
+    total_project_cost = purchase_price + rehab_cost + holding_costs + closing_costs
+    total_net_profit = arv - total_project_cost
 
     return {
         'profit': round(profit, 2),
@@ -139,48 +140,96 @@ def calculate_fix_flip(inputs):
         'selling_costs': round(selling_costs, 2),
         'holding_costs': round(holding_costs, 2),
         'cash_invested': round(cash_invested, 2),
-        'mao_check_70': round(mao_check_70, 2),
+        'mao': round(max(mao, 0), 2),
+        'mao_check_70': round(max(mao, 0), 2),
+        'mpp': round(mpp, 2),
+        'closing_costs': round(closing_costs, 2),
+        'target_net_profit': round(target_net_profit, 2),
+        'total_project_cost': round(total_project_cost, 2),
+        'total_net_profit': round(total_net_profit, 2),
         'is_good_deal': is_good_deal,
     }
 
 
 # ── 1C. BRRRR ──
 def calculate_brrrr(inputs):
+    """
+    CredenceHub BRRRR Formula (per client specification)
+
+    1. Acquisition & Screening
+       BRRRR MAO = (ARV x Refinance LTV %) - Estimated Repair Costs
+
+    2. Cost Calculations
+       Initial Cash Invested = Down Payment + Acquisition Costs + Rehab Costs + Holding Costs
+       Holding Costs = (Monthly Loan Interest + Property Taxes + Insurance + Utilities) x Months to Refinance
+
+    3. Refinance Metrics
+       Refinance Loan Amount = ARV x Refinance LTV %
+
+    4. Cash Left in Deal
+       Cash Left in Deal = Initial Cash Invested
+                            - (Refinance Loan Amount - Initial Debt Payoff - Refinance Closing Costs)
+    """
     purchase_price = safe_float(inputs.get('purchase_price'))
     rehab_cost = safe_float(inputs.get('rehab_cost'))
     arv = safe_float(inputs.get('arv'))
     refinance_ltv = safe_float(inputs.get('refinance_ltv'), 75)
+
+    # 1. Acquisition & Screening
+    mao = (arv * (refinance_ltv / 100)) - rehab_cost
+
+    # 2. Cost Calculations
+    down_payment = safe_float(inputs.get('down_payment'))
+    acquisition_costs = safe_float(inputs.get('acquisition_costs'))
+    monthly_loan_interest = safe_float(inputs.get('monthly_loan_interest'))
+    property_taxes = safe_float(inputs.get('property_taxes'))
+    insurance = safe_float(inputs.get('insurance'))
+    utilities = safe_float(inputs.get('utilities'))
+    months_to_refinance = safe_float(inputs.get('months_to_refinance'), 6)
+
+    holding_costs = (monthly_loan_interest + property_taxes + insurance + utilities) * months_to_refinance
+    initial_cash_invested = down_payment + acquisition_costs + rehab_cost + holding_costs
+
+    # 3. Refinance Metrics
+    refinance_loan_amount = arv * (refinance_ltv / 100)
+
+    # 4. Cash Left in Deal
+    initial_debt_payoff = safe_float(inputs.get('initial_debt_payoff'), purchase_price)
+    refinance_closing_costs = safe_float(inputs.get('refinance_closing_costs'))
+    cash_left_in_deal = initial_cash_invested - (refinance_loan_amount - initial_debt_payoff - refinance_closing_costs)
+
+    # Supplementary post-refinance rental metrics (not part of the client's 4
+    # formulas — kept as useful bonus context on the results panel).
     monthly_rent = safe_float(inputs.get('monthly_rent'))
     monthly_expenses = safe_float(inputs.get('monthly_expenses'))
     interest_rate = safe_float(inputs.get('interest_rate'), 6)
     loan_term_years = safe_float(inputs.get('loan_term_years'), 25)
 
-    total_invested = purchase_price + rehab_cost
-    refinance_amount = arv * (refinance_ltv / 100)
-    capital_recycled = refinance_amount
-    capital_left_in = max(total_invested - refinance_amount, 0)
-    equity_in_deal = arv - refinance_amount
-
     monthly_rate = interest_rate / 100 / 12
     n_payments = loan_term_years * 12
     if monthly_rate > 0:
-        mortgage_payment = refinance_amount * (monthly_rate * (1 + monthly_rate) ** n_payments) / \
+        mortgage_payment = refinance_loan_amount * (monthly_rate * (1 + monthly_rate) ** n_payments) / \
                            ((1 + monthly_rate) ** n_payments - 1)
     else:
-        mortgage_payment = refinance_amount / n_payments if n_payments > 0 else 0
+        mortgage_payment = refinance_loan_amount / n_payments if n_payments > 0 else 0
 
     monthly_cashflow = monthly_rent - monthly_expenses - mortgage_payment
     annual_cashflow = monthly_cashflow * 12
-    coc_return = (annual_cashflow / capital_left_in * 100) if capital_left_in > 0 else 0
+    coc_return = (annual_cashflow / cash_left_in_deal * 100) if cash_left_in_deal > 0 else 0
     gross_yield = (monthly_rent * 12 / arv * 100) if arv > 0 else 0
-    infinite_return = capital_left_in <= 0
+    infinite_return = cash_left_in_deal <= 0
 
     return {
-        'total_invested': round(total_invested, 2),
-        'refinance_amount': round(refinance_amount, 2),
-        'capital_recycled': round(capital_recycled, 2),
-        'capital_left_in': round(capital_left_in, 2),
-        'equity_in_deal': round(equity_in_deal, 2),
+        'mao': round(max(mao, 0), 2),
+        'initial_cash_invested': round(initial_cash_invested, 2),
+        'holding_costs': round(holding_costs, 2),
+        'refinance_loan_amount': round(refinance_loan_amount, 2),
+        'refinance_amount': round(refinance_loan_amount, 2),
+        'cash_left_in_deal': round(cash_left_in_deal, 2),
+        'capital_left_in': round(max(cash_left_in_deal, 0), 2),
+        'capital_recycled': round(refinance_loan_amount, 2),
+        'total_invested': round(initial_cash_invested, 2),
+        'equity_in_deal': round(arv - refinance_loan_amount, 2),
         'mortgage_payment': round(mortgage_payment, 2),
         'monthly_cashflow': round(monthly_cashflow, 2),
         'annual_cashflow': round(annual_cashflow, 2),
@@ -260,25 +309,24 @@ def calculate_infill(inputs):
 
 def _calculate_spec_build(inputs):
     """
-    CredenceHub Spec Build (Build and Sell)
-    MLV = (ARV x (1 - Target Profit Margin)) - Construction Cost
-          - Soft Costs - Holding Costs - Financing Costs - Selling Costs
-    MAO = MLV - Assignment Fee (if wholesaling the land)
+    CredenceHub Land Development Formula (per client specification)
+
+    MAO / MLP (Maximum Allowable Offer / Maximum Land Price)
+      = ARV x (1 - Net Profit Margin %) - Construction Costs - Soft Costs - Holding Costs
+
+    MAO = MLP - Assignment Fee (if wholesaling the land)
     """
     arv = safe_float(inputs.get('arv'))
     target_profit_margin = safe_float(inputs.get('target_profit_margin'), 25) / 100
     construction_cost = safe_float(inputs.get('construction_cost'))
     soft_costs = safe_float(inputs.get('soft_costs'))
     holding_costs = safe_float(inputs.get('holding_costs'))
-    financing_costs = safe_float(inputs.get('financing_costs'))
-    selling_costs_pct = safe_float(inputs.get('selling_costs_pct'), 6) / 100
     assignment_fee = safe_float(inputs.get('assignment_fee'), 0)
     floor_area = safe_float(inputs.get('floor_area'), 1)
     contingency_pct = safe_float(inputs.get('contingency_pct'), 0)
 
-    selling_costs = arv * selling_costs_pct
     contingency = (construction_cost + soft_costs) * (contingency_pct / 100)
-    total_other_costs = construction_cost + soft_costs + holding_costs + financing_costs + selling_costs + contingency
+    total_other_costs = construction_cost + soft_costs + holding_costs + contingency
 
     # CredenceHub Core Formula
     profit_factor = 1 - target_profit_margin
@@ -293,7 +341,7 @@ def _calculate_spec_build(inputs):
     roi = (developer_profit / total_cost * 100) if total_cost > 0 else 0
     cost_per_sqft = total_cost / floor_area if floor_area > 0 else 0
 
-    # Wholesaler MAO = MLV - Assignment Fee
+    # Wholesaler MAO = MLP - Assignment Fee
     mao = maximum_land_value - assignment_fee
 
     return {
@@ -302,7 +350,6 @@ def _calculate_spec_build(inputs):
         'mao': round(max(mao, 0), 2),
         'adjusted_arv': round(adjusted_arv, 2),
         'total_other_costs': round(total_other_costs, 2),
-        'selling_costs': round(selling_costs, 2),
         'contingency': round(contingency, 2),
         'developer_profit': round(developer_profit, 2),
         'actual_profit_margin': round(actual_profit_margin, 2),

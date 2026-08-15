@@ -305,34 +305,49 @@ def generate_construction_pdf(project, summary):
 LABEL_OVERRIDES = {
     'arv': 'After Repair Value (ARV)', 'mao': 'Max Allowable Offer (MAO)',
     'mao_70': 'MAO at 70% Rule', 'mao_75': 'MAO at 75% Rule', 'mao_80': 'MAO at 80% Rule',
-    'mao_check_70': 'MAO Check (70% Rule)', 'roi': 'ROI', 'coc_return': 'Cash-on-Cash Return',
+    'mao_check_70': 'MAO Check (70% Rule)', 'mpp': 'Maximum Purchase Price (MPP)',
+    'roi': 'ROI', 'coc_return': 'Cash-on-Cash Return',
     'noi': 'Net Operating Income', 'ltv': 'Loan-to-Value', 'dscr': 'DSCR',
     'grm': 'Gross Rent Multiplier', 'irr_5yr': '5-Year IRR', 'mlv': 'Maximum Land Value (MLV)',
     'rehab_cost': 'Renovation Cost', 'arv_land': 'Land ARV',
+    'down_payment': 'Down Payment', 'gross_rental_income': 'Gross Rental Income',
+    'effective_gross_income': 'Effective Gross Income', 'operating_expenses': 'Operating Expenses',
+    'annual_debt_service': 'Annual Debt Service', 'vacancy_credit_loss_pct': 'Vacancy & Credit Loss %',
+    'bank_rate_pct': 'Bank Rate to Beat', 'market_cap_rate_pct': 'Market Cap Rate',
+    'cash_flow': 'Cash Flow', 'cap_rate': 'Deal Cap Rate',
+    'initial_cash_invested': 'Initial Cash Invested', 'refinance_loan_amount': 'Refinance Loan Amount',
+    'cash_left_in_deal': 'Cash Left in Deal', 'acquisition_costs': 'Acquisition Costs',
+    'monthly_loan_interest': 'Monthly Loan Interest', 'property_taxes': 'Monthly Property Taxes',
+    'insurance': 'Monthly Insurance', 'utilities': 'Monthly Utilities',
+    'months_to_refinance': 'Months to Refinance', 'initial_debt_payoff': 'Initial Debt Payoff',
+    'refinance_closing_costs': 'Refinance Closing Costs', 'closing_costs': 'Closing Costs',
+    'target_net_profit': 'Target Net Profit', 'total_net_profit': 'Total Net Profit',
+    'total_project_cost': 'Total Project Cost',
 }
 
 RESULTS_BY_STRATEGY = {
     'fix_flip': [
-        ('Projected Profit', 'profit', True, True), ('Total Investment', 'total_investment', True, False),
-        ('ROI', 'roi', False, False), ('Annualized ROI', 'annualized_roi', False, False),
-        ('Cash-on-Cash Return', 'coc_return', False, False), ('Break-Even ARV', 'break_even_arv', True, False),
-        ('MAO Check (70% Rule)', 'mao_check_70', True, False), ('Selling Costs', 'selling_costs', True, False),
-        ('Holding Costs', 'holding_costs', True, False),
+        ('Maximum Allowable Offer (MAO)', 'mao', True, True), ('Maximum Purchase Price (MPP)', 'mpp', True, True),
+        ('Total Net Profit', 'total_net_profit', True, True), ('Projected Profit', 'profit', True, False),
+        ('Total Investment', 'total_investment', True, False), ('ROI', 'roi', False, False),
+        ('Annualized ROI', 'annualized_roi', False, False), ('Cash-on-Cash Return', 'coc_return', False, False),
+        ('Break-Even ARV', 'break_even_arv', True, False), ('Selling Costs', 'selling_costs', True, False),
+        ('Holding Costs', 'holding_costs', True, False), ('Closing Costs', 'closing_costs', True, False),
     ],
     'brrrr': [
-        ('Refinance Amount', 'refinance_amount', True, False), ('Capital Recycled', 'capital_recycled', True, True),
-        ('Capital Left In Deal', 'capital_left_in', True, False), ('Equity In Deal', 'equity_in_deal', True, True),
-        ('Mortgage Payment', 'mortgage_payment', True, False), ('Monthly Cash Flow', 'monthly_cashflow', True, True),
+        ('Maximum Allowable Offer (MAO)', 'mao', True, True), ('Initial Cash Invested', 'initial_cash_invested', True, True),
+        ('Refinance Loan Amount', 'refinance_loan_amount', True, False), ('Cash Left in Deal', 'cash_left_in_deal', True, True),
+        ('Holding Costs (pre-refinance)', 'holding_costs', True, False), ('Equity In Deal', 'equity_in_deal', True, False),
+        ('Mortgage Payment (post-refinance)', 'mortgage_payment', True, False), ('Monthly Cash Flow', 'monthly_cashflow', True, False),
         ('Annual Cash Flow', 'annual_cashflow', True, False), ('Cash-on-Cash Return', 'coc_return', False, False),
         ('Gross Yield', 'gross_yield', False, False),
     ],
     'construction': [
-        ('Maximum Land Value (MLV)', 'maximum_land_value', True, True), ('Max Allowable Offer (MAO)', 'mao', True, True),
+        ('Max Allowable Offer / Max Land Price', 'maximum_land_value', True, True), ('MAO After Assignment Fee', 'mao', True, True),
         ('Adjusted ARV', 'adjusted_arv', True, False), ('Developer Profit', 'developer_profit', True, True),
-        ('Actual Profit Margin', 'actual_profit_margin', False, False), ('Target Profit Margin', 'target_profit_margin_pct', False, False),
+        ('Actual Profit Margin', 'actual_profit_margin', False, False), ('Net Profit Margin', 'target_profit_margin_pct', False, False),
         ('ROI', 'roi', False, False), ('Total Project Cost', 'total_cost', True, False),
-        ('Selling Costs', 'selling_costs', True, False), ('Contingency', 'contingency', True, False),
-        ('Cost Per Sq Ft', 'cost_per_sqft', True, False),
+        ('Contingency', 'contingency', True, False), ('Cost Per Sq Ft', 'cost_per_sqft', True, False),
     ],
     'infill': [
         ('Maximum Land Value (MLV)', 'maximum_land_value', True, True), ('Max Allowable Offer (MAO)', 'mao', True, True),
@@ -349,27 +364,16 @@ RESULTS_BY_STRATEGY = {
         ('Mortgage Payment', 'mortgage_payment', True, False), ('Annual Debt Service', 'annual_debt_service', True, False),
         ('5-Year IRR', 'irr_5yr', False, True),
     ],
+    'wholesale': [
+        ('Net Operating Income (NOI)', 'noi', True, True), ('Cash Flow', 'cash_flow', True, True),
+        ('Cash on Cash Return', 'coc_return', False, True), ('Deal Cap Rate', 'cap_rate', False, True),
+        ('Gross Rental Income', 'gross_rental_income', True, False), ('Effective Gross Income', 'effective_gross_income', True, False),
+        ('Operating Expenses', 'operating_expenses', True, False), ('Annual Debt Service', 'annual_debt_service', True, False),
+    ],
 }
 
 
-def _wholesale_results(outputs):
-    if outputs.get('deal_type') == 'land':
-        return [
-            ('Maximum Land Value (MLV)', 'maximum_land_value', True, True), ('Max Allowable Offer (MAO)', 'mao', True, True),
-            ('Your Assignment Fee', 'wholesale_profit', True, True), ('Developer Projected Profit', 'developer_profit', True, False),
-            ('Selling Costs', 'selling_costs', True, False), ('Total Developer Costs', 'total_developer_costs', True, False),
-        ]
-    return [
-        ('Your Assignment Profit', 'wholesale_profit', True, True), ('MAO at 70% Rule', 'mao_70', True, True),
-        ('MAO at 75% Rule', 'mao_75', True, False), ('MAO at 80% Rule', 'mao_80', True, False),
-        ('Buyer All-In Cost', 'buyer_all_in', True, False), ('Buyer Projected Profit', 'buyer_profit', True, True),
-        ('Buyer ROI', 'buyer_roi', False, False), ('Deal Spread', 'spread', True, False),
-    ]
-
-
 def _results_for_strategy(strategy, outputs):
-    if strategy == 'wholesale':
-        return _wholesale_results(outputs)
     if strategy == 'construction' and outputs.get('exit_strategy') == 'build_to_rent':
         return [
             ('NOI (Annual)', 'noi', True, True), ('As-Built Value', 'as_built_value', True, True),

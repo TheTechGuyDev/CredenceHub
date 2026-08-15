@@ -73,99 +73,58 @@
 
             {% if deal.strategy == 'wholesale' %}
 
-            <!-- Deal Type Toggle -->
-            <div class="form-group">
-              <label class="form-label">Wholesale Deal Type</label>
-              <select name="input_deal_type" class="form-control calc-input" id="dealTypeSelect" onchange="toggleWholesaleType(this.value)">
-                <option value="rehab" {% if inputs.get('deal_type') != 'land' %}selected{% endif %}>Rehab / Fix & Flip Wholesale</option>
-                <option value="land" {% if inputs.get('deal_type') == 'land' %}selected{% endif %}>Land / New Construction Wholesale</option>
-              </select>
-              <p class="form-text">Rehab: assign to a flipper. Land: assign to a developer.</p>
+            <!-- Formula Info Box -->
+            <div style="background:rgba(15,45,94,0.06); border:1px solid rgba(15,45,94,0.15); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:16px;">
+              <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;">CredenceHub — Multifamily Formula</p>
+              <p style="font-size:12px; color:var(--text-muted);">Cash Flow = NOI − Annual Debt Service</p>
+              <p style="font-size:12px; color:var(--text-muted);">Cash on Cash Return = Cash Flow ÷ Down Payment × 100%</p>
+              <p style="font-size:12px; color:var(--text-muted);">Deal Cap Rate = NOI ÷ Purchase Price × 100%</p>
             </div>
 
-            <!-- Rehab Wholesale Inputs -->
-            <div id="rehabInputs" style="display:{% if inputs.get('deal_type') == 'land' %}none{% else %}grid{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group">
                 <label class="form-label">Purchase Price ($)</label>
                 <input type="number" name="input_purchase_price" class="form-control calc-input"
-                       value="{{ inputs.get('purchase_price', '') }}" placeholder="0" step="1000" />
+                       value="{{ inputs.get('purchase_price', '') }}" placeholder="0" step="5000" />
               </div>
               <div class="form-group">
-                <label class="form-label">Assignment Fee ($)</label>
-                <input type="number" name="input_assignment_fee" class="form-control calc-input"
-                       value="{{ inputs.get('assignment_fee', '') }}" placeholder="0" step="500" />
+                <label class="form-label">Down Payment ($)</label>
+                <input type="number" name="input_down_payment" class="form-control calc-input"
+                       value="{{ inputs.get('down_payment', '') }}" placeholder="0" step="1000" />
               </div>
               <div class="form-group">
-                <label class="form-label">After Repair Value — ARV ($)</label>
-                <input type="number" name="input_arv" class="form-control calc-input"
-                       value="{{ inputs.get('arv', '') }}" placeholder="0" step="1000" />
+                <label class="form-label">Gross Rental Income ($/yr)</label>
+                <input type="number" name="input_gross_rental_income" class="form-control calc-input"
+                       value="{{ inputs.get('gross_rental_income', '') }}" placeholder="0" step="1000" />
               </div>
               <div class="form-group">
-                <label class="form-label">Estimated Repair Cost ($)</label>
-                <input type="number" name="input_repair_cost" class="form-control calc-input"
-                       value="{{ inputs.get('repair_cost', '') }}" placeholder="0" step="500" />
+                <label class="form-label">Vacancy & Credit Loss (%)</label>
+                <input type="number" name="input_vacancy_credit_loss_pct" class="form-control calc-input"
+                       value="{{ inputs.get('vacancy_credit_loss_pct', 5) }}" placeholder="5" step="0.5" />
+                <p class="form-text">Used to calculate Effective Gross Income</p>
               </div>
               <div class="form-group">
-                <label class="form-label">Closing Costs ($)</label>
-                <input type="number" name="input_closing_costs" class="form-control calc-input"
-                       value="{{ inputs.get('closing_costs', 3000) }}" placeholder="3000" step="500" />
-              </div>
-            </div>
-
-            <!-- Land Wholesale Inputs (Maximum Land Value Method) -->
-            <div id="landInputs" style="display:{% if inputs.get('deal_type') == 'land' %}grid{% else %}none{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
-              <div class="form-group" style="grid-column:1/-1;">
-                <div style="background:rgba(15,45,94,0.06); border:1px solid rgba(15,45,94,0.15); border-radius:var(--radius-sm); padding:12px 16px;">
-                  <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;">CredenceHub — Maximum Land Value Formula</p>
-                  <p style="font-size:12px; color:var(--text-muted);">MLV = (ARV × (1 − Profit Margin)) − Construction − Soft − Holding − Financing − Selling Costs</p>
-                  <p style="font-size:12px; color:var(--text-muted);">MAO = MLV − Assignment Fee</p>
-                </div>
+                <label class="form-label">Operating Expenses ($/yr)</label>
+                <input type="number" name="input_operating_expenses" class="form-control calc-input"
+                       value="{{ inputs.get('operating_expenses', '') }}" placeholder="0" step="500" />
               </div>
               <div class="form-group">
-                <label class="form-label">Post-Construction ARV ($)</label>
-                <input type="number" name="input_arv" class="form-control calc-input"
-                       value="{{ inputs.get('arv', '') }}" placeholder="400000" step="5000" />
+                <label class="form-label">Annual Debt Service ($)</label>
+                <input type="number" name="input_annual_debt_service" class="form-control calc-input"
+                       value="{{ inputs.get('annual_debt_service', '') }}" placeholder="0" step="500" />
+                <p class="form-text">Total yearly mortgage payments</p>
               </div>
               <div class="form-group">
-                <label class="form-label">Target Profit Margin (%)</label>
-                <input type="number" name="input_target_profit_margin" class="form-control calc-input"
-                       value="{{ inputs.get('target_profit_margin', 25) }}" placeholder="25" step="1" min="15" max="40" />
-                <p class="form-text">Industry standard: 22–25%</p>
+                <label class="form-label">Bank Rate to Beat (%)</label>
+                <input type="number" name="input_bank_rate_pct" class="form-control calc-input"
+                       value="{{ inputs.get('bank_rate_pct', 5) }}" placeholder="5" step="0.25" />
+                <p class="form-text">Your Cash on Cash Return should beat this</p>
               </div>
               <div class="form-group">
-                <label class="form-label">Construction Cost ($)</label>
-                <input type="number" name="input_construction_cost" class="form-control calc-input"
-                       value="{{ inputs.get('construction_cost', '') }}" placeholder="200000" step="5000" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Soft Costs ($)</label>
-                <input type="number" name="input_soft_costs" class="form-control calc-input"
-                       value="{{ inputs.get('soft_costs', '') }}" placeholder="10000" step="1000" />
-                <p class="form-text">Permits, plans, engineering, surveys</p>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Holding Costs ($)</label>
-                <input type="number" name="input_holding_costs" class="form-control calc-input"
-                       value="{{ inputs.get('holding_costs', '') }}" placeholder="5000" step="500" />
-                <p class="form-text">Taxes, insurance during construction</p>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Financing Costs ($)</label>
-                <input type="number" name="input_financing_costs" class="form-control calc-input"
-                       value="{{ inputs.get('financing_costs', '') }}" placeholder="5000" step="500" />
-                <p class="form-text">Construction loan interest and fees</p>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Selling Costs (% of ARV)</label>
-                <input type="number" name="input_selling_costs_pct" class="form-control calc-input"
-                       value="{{ inputs.get('selling_costs_pct', 6) }}" placeholder="6" step="0.5" />
-                <p class="form-text">Agent commissions, closing costs</p>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Your Assignment Fee ($)</label>
-                <input type="number" name="input_assignment_fee" class="form-control calc-input"
-                       value="{{ inputs.get('assignment_fee', '') }}" placeholder="10000" step="500" />
-                <p class="form-text">Your profit as the wholesaler</p>
+                <label class="form-label">Market Cap Rate (%)</label>
+                <input type="number" name="input_market_cap_rate_pct" class="form-control calc-input"
+                       value="{{ inputs.get('market_cap_rate_pct', 6) }}" placeholder="6" step="0.25" />
+                <p class="form-text">Your Deal Cap Rate should beat this</p>
               </div>
             </div>
 
@@ -215,9 +174,29 @@
                 <input type="number" name="input_selling_costs_pct" class="form-control calc-input"
                        value="{{ inputs.get('selling_costs_pct', 8) }}" placeholder="8" step="0.5" />
               </div>
+              <div class="form-group">
+                <label class="form-label">Closing Costs ($)</label>
+                <input type="number" name="input_closing_costs" class="form-control calc-input"
+                       value="{{ inputs.get('closing_costs', 3000) }}" placeholder="3000" step="500" />
+                <p class="form-text">Used in the MPP formula</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Target Net Profit ($)</label>
+                <input type="number" name="input_target_net_profit" class="form-control calc-input"
+                       value="{{ inputs.get('target_net_profit', '') }}" placeholder="0" step="1000" />
+                <p class="form-text">Used to back into your Maximum Purchase Price (MPP)</p>
+              </div>
             </div>
 
             {% elif deal.strategy == 'brrrr' %}
+
+            <!-- Formula Info Box -->
+            <div style="background:rgba(15,45,94,0.06); border:1px solid rgba(15,45,94,0.15); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:16px;">
+              <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;">CredenceHub — BRRRR Formula</p>
+              <p style="font-size:12px; color:var(--text-muted);">MAO = (ARV × Refinance LTV%) − Estimated Repair Costs</p>
+              <p style="font-size:12px; color:var(--text-muted);">Cash Left in Deal = Initial Cash Invested − (Refinance Loan Amount − Initial Debt Payoff − Refinance Closing Costs)</p>
+            </div>
+
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group">
                 <label class="form-label">Purchase Price ($)</label>
@@ -239,6 +218,60 @@
                 <input type="number" name="input_refinance_ltv" class="form-control calc-input"
                        value="{{ inputs.get('refinance_ltv', 75) }}" placeholder="75" step="5" />
               </div>
+              <div class="form-group">
+                <label class="form-label">Down Payment ($)</label>
+                <input type="number" name="input_down_payment" class="form-control calc-input"
+                       value="{{ inputs.get('down_payment', '') }}" placeholder="0" step="1000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Acquisition Costs ($)</label>
+                <input type="number" name="input_acquisition_costs" class="form-control calc-input"
+                       value="{{ inputs.get('acquisition_costs', '') }}" placeholder="0" step="500" />
+                <p class="form-text">Closing costs, inspection, legal fees at purchase</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Months to Refinance</label>
+                <input type="number" name="input_months_to_refinance" class="form-control calc-input"
+                       value="{{ inputs.get('months_to_refinance', 6) }}" placeholder="6" step="1" />
+              </div>
+              <div class="form-group"></div>
+              <div class="form-group">
+                <label class="form-label">Monthly Loan Interest ($)</label>
+                <input type="number" name="input_monthly_loan_interest" class="form-control calc-input"
+                       value="{{ inputs.get('monthly_loan_interest', '') }}" placeholder="0" step="50" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Monthly Property Taxes ($)</label>
+                <input type="number" name="input_property_taxes" class="form-control calc-input"
+                       value="{{ inputs.get('property_taxes', '') }}" placeholder="0" step="25" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Monthly Insurance ($)</label>
+                <input type="number" name="input_insurance" class="form-control calc-input"
+                       value="{{ inputs.get('insurance', '') }}" placeholder="0" step="25" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Monthly Utilities ($)</label>
+                <input type="number" name="input_utilities" class="form-control calc-input"
+                       value="{{ inputs.get('utilities', '') }}" placeholder="0" step="25" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Initial Debt Payoff ($)</label>
+                <input type="number" name="input_initial_debt_payoff" class="form-control calc-input"
+                       value="{{ inputs.get('initial_debt_payoff', '') }}" placeholder="Defaults to Purchase Price" step="1000" />
+                <p class="form-text">Loan balance paid off at refinance — defaults to Purchase Price if left blank</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Refinance Closing Costs ($)</label>
+                <input type="number" name="input_refinance_closing_costs" class="form-control calc-input"
+                       value="{{ inputs.get('refinance_closing_costs', '') }}" placeholder="0" step="500" />
+              </div>
+            </div>
+
+            <p style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin:20px 0 12px;">
+              Post-Refinance Rental Projections
+            </p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group">
                 <label class="form-label">Monthly Rent ($)</label>
                 <input type="number" name="input_monthly_rent" class="form-control calc-input"
@@ -275,13 +308,13 @@
             <!-- Formula Info Box -->
             <div style="background:rgba(15,45,94,0.06); border:1px solid rgba(15,45,94,0.15); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:16px;">
               <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;" id="formulaLabel">
-                {% if inputs.get('exit_strategy') == 'build_to_rent' %}CredenceHub — Build to Rent Formula{% else %}CredenceHub — Spec Build Formula{% endif %}
+                {% if inputs.get('exit_strategy') == 'build_to_rent' %}CredenceHub — Build to Rent Formula{% else %}CredenceHub — Land Development Formula{% endif %}
               </p>
               <p style="font-size:12px; color:var(--text-muted);" id="formulaText">
                 {% if inputs.get('exit_strategy') == 'build_to_rent' %}
                   MLV = (NOI ÷ Cap Rate × (1 − Equity Margin)) − Construction − Soft − Holding − Financing Costs
                 {% else %}
-                  MLV = (ARV × (1 − Profit Margin)) − Construction − Soft − Holding − Financing − Selling Costs
+                  MAO / MLP = ARV × (1 − Net Profit Margin %) − Construction Costs − Soft Costs − Holding Costs
                 {% endif %}
               </p>
             </div>
@@ -289,47 +322,39 @@
             <!-- Spec Build Inputs -->
             <div id="specBuildInputs" style="display:{% if inputs.get('exit_strategy') == 'build_to_rent' %}none{% else %}grid{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group">
-                <label class="form-label">Post-Construction ARV ($)</label>
+                <label class="form-label">ARV / Gross End Value ($)</label>
                 <input type="number" name="input_arv" class="form-control calc-input"
                        value="{{ inputs.get('arv', '') }}" placeholder="400000" step="5000" />
               </div>
               <div class="form-group">
-                <label class="form-label">Target Profit Margin (%)</label>
+                <label class="form-label">Net Profit Margin (%)</label>
                 <input type="number" name="input_target_profit_margin" class="form-control calc-input"
                        value="{{ inputs.get('target_profit_margin', 25) }}" placeholder="25" step="1" />
                 <p class="form-text">Industry standard: 22–25%</p>
               </div>
               <div class="form-group">
-                <label class="form-label">Construction Cost ($)</label>
+                <label class="form-label">Construction Costs ($)</label>
                 <input type="number" name="input_construction_cost" class="form-control calc-input"
                        value="{{ inputs.get('construction_cost', '') }}" placeholder="200000" step="5000" />
+                <p class="form-text">Hard costs — foundation, framing, materials, labour</p>
               </div>
               <div class="form-group">
                 <label class="form-label">Soft Costs ($)</label>
                 <input type="number" name="input_soft_costs" class="form-control calc-input"
                        value="{{ inputs.get('soft_costs', '') }}" placeholder="10000" step="1000" />
-                <p class="form-text">Permits, plans, engineering</p>
+                <p class="form-text">Design, engineering, permits, legal, financing fees</p>
               </div>
               <div class="form-group">
                 <label class="form-label">Holding Costs ($)</label>
                 <input type="number" name="input_holding_costs" class="form-control calc-input"
                        value="{{ inputs.get('holding_costs', '') }}" placeholder="5000" step="500" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Financing Costs ($)</label>
-                <input type="number" name="input_financing_costs" class="form-control calc-input"
-                       value="{{ inputs.get('financing_costs', '') }}" placeholder="5000" step="500" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Selling Costs (% of ARV)</label>
-                <input type="number" name="input_selling_costs_pct" class="form-control calc-input"
-                       value="{{ inputs.get('selling_costs_pct', 6) }}" placeholder="6" step="0.5" />
+                <p class="form-text">Taxes, insurance, loan interest, utilities during development</p>
               </div>
               <div class="form-group">
                 <label class="form-label">Land Cost ($) — if known</label>
                 <input type="number" name="input_land_cost" class="form-control calc-input"
                        value="{{ inputs.get('land_cost', 0) }}" placeholder="0" step="5000" />
-                <p class="form-text">Leave 0 to calculate MLV</p>
+                <p class="form-text">Leave 0 to calculate MAO/MLP</p>
               </div>
               <div class="form-group">
                 <label class="form-label">Assignment Fee ($) — if wholesaling</label>
@@ -564,49 +589,43 @@
         {% if outputs %}
 
           {% if deal.strategy == 'wholesale' %}
-            {% if outputs.get('deal_type') == 'land' %}
-            {% set items = [
-              ('Maximum Land Value (MLV)', outputs.get('maximum_land_value', 0), True, True),
-              ('Max Allowable Offer (MAO)', outputs.get('mao', 0), True, True),
-              ('Your Assignment Fee', outputs.get('wholesale_profit', 0), True, True),
-              ('Developer Projected Profit', outputs.get('developer_profit', 0), True, False),
-              ('Selling Costs', outputs.get('selling_costs', 0), True, False),
-              ('Total Developer Costs', outputs.get('total_developer_costs', 0), True, False),
-            ] %}
-            {% else %}
-            {% set items = [
-              ('Your Assignment Profit', outputs.get('wholesale_profit', 0), True, True),
-              ('MAO at 70% Rule', outputs.get('mao_70', 0), True, True),
-              ('MAO at 75% Rule', outputs.get('mao_75', 0), True, False),
-              ('MAO at 80% Rule', outputs.get('mao_80', 0), True, False),
-              ('Buyer All-In Cost', outputs.get('buyer_all_in', 0), True, False),
-              ('Buyer Projected Profit', outputs.get('buyer_profit', 0), True, True),
-              ('Buyer ROI', outputs.get('buyer_roi', 0), False, False),
-              ('Deal Spread', outputs.get('spread', 0), True, False),
-            ] %}
-            {% endif %}
+          {% set items = [
+            ('Net Operating Income (NOI)', outputs.get('noi', 0), True, True),
+            ('Cash Flow', outputs.get('cash_flow', 0), True, True),
+            ('Cash on Cash Return', outputs.get('coc_return', 0), False, True),
+            ('Deal Cap Rate', outputs.get('cap_rate', 0), False, True),
+            ('Gross Rental Income', outputs.get('gross_rental_income', 0), True, False),
+            ('Effective Gross Income', outputs.get('effective_gross_income', 0), True, False),
+            ('Operating Expenses', outputs.get('operating_expenses', 0), True, False),
+            ('Annual Debt Service', outputs.get('annual_debt_service', 0), True, False),
+          ] %}
 
           {% elif deal.strategy == 'fix_flip' %}
           {% set items = [
-            ('Projected Profit', outputs.get('profit', 0), True, True),
+            ('Maximum Allowable Offer (MAO)', outputs.get('mao', 0), True, True),
+            ('Maximum Purchase Price (MPP)', outputs.get('mpp', 0), True, True),
+            ('Total Net Profit', outputs.get('total_net_profit', 0), True, True),
+            ('Projected Profit', outputs.get('profit', 0), True, False),
             ('Total Investment', outputs.get('total_investment', 0), True, False),
             ('ROI', outputs.get('roi', 0), False, False),
             ('Annualized ROI', outputs.get('annualized_roi', 0), False, False),
             ('Cash-on-Cash Return', outputs.get('coc_return', 0), False, False),
             ('Break-Even ARV', outputs.get('break_even_arv', 0), True, False),
-            ('MAO Check (70% Rule)', outputs.get('mao_check_70', 0), True, False),
             ('Selling Costs', outputs.get('selling_costs', 0), True, False),
             ('Holding Costs', outputs.get('holding_costs', 0), True, False),
+            ('Closing Costs', outputs.get('closing_costs', 0), True, False),
           ] %}
 
           {% elif deal.strategy == 'brrrr' %}
           {% set items = [
-            ('Refinance Amount', outputs.get('refinance_amount', 0), True, False),
-            ('Capital Recycled', outputs.get('capital_recycled', 0), True, True),
-            ('Capital Left In Deal', outputs.get('capital_left_in', 0), True, False),
-            ('Equity In Deal', outputs.get('equity_in_deal', 0), True, True),
-            ('Mortgage Payment', outputs.get('mortgage_payment', 0), True, False),
-            ('Monthly Cash Flow', outputs.get('monthly_cashflow', 0), True, True),
+            ('Maximum Allowable Offer (MAO)', outputs.get('mao', 0), True, True),
+            ('Initial Cash Invested', outputs.get('initial_cash_invested', 0), True, True),
+            ('Refinance Loan Amount', outputs.get('refinance_loan_amount', 0), True, False),
+            ('Cash Left in Deal', outputs.get('cash_left_in_deal', 0), True, True),
+            ('Holding Costs (pre-refinance)', outputs.get('holding_costs', 0), True, False),
+            ('Equity In Deal', outputs.get('equity_in_deal', 0), True, False),
+            ('Mortgage Payment (post-refinance)', outputs.get('mortgage_payment', 0), True, False),
+            ('Monthly Cash Flow', outputs.get('monthly_cashflow', 0), True, False),
             ('Annual Cash Flow', outputs.get('annual_cashflow', 0), True, False),
             ('Cash-on-Cash Return', outputs.get('coc_return', 0), False, False),
             ('Gross Yield', outputs.get('gross_yield', 0), False, False),
@@ -628,15 +647,14 @@
             ] %}
             {% else %}
             {% set items = [
-              ('Maximum Land Value (MLV)', outputs.get('maximum_land_value', 0), True, True),
-              ('Max Allowable Offer (MAO)', outputs.get('mao', 0), True, True),
+              ('Max Allowable Offer / Max Land Price', outputs.get('maximum_land_value', 0), True, True),
+              ('MAO After Assignment Fee', outputs.get('mao', 0), True, True),
               ('Adjusted ARV', outputs.get('adjusted_arv', 0), True, False),
               ('Developer Profit', outputs.get('developer_profit', 0), True, True),
               ('Actual Profit Margin', outputs.get('actual_profit_margin', 0), False, False),
-              ('Target Profit Margin', outputs.get('target_profit_margin_pct', 0), False, False),
+              ('Net Profit Margin', outputs.get('target_profit_margin_pct', 0), False, False),
               ('ROI', outputs.get('roi', 0), False, False),
               ('Total Project Cost', outputs.get('total_cost', 0), True, False),
-              ('Selling Costs', outputs.get('selling_costs', 0), True, False),
               ('Contingency', outputs.get('contingency', 0), True, False),
               ('Cost Per Sq Ft', outputs.get('cost_per_sqft', 0), True, False),
             ] %}
@@ -683,6 +701,24 @@
             </span>
           </div>
           {% endfor %}
+
+          <!-- Multifamily Decision Framework -->
+          {% if deal.strategy == 'wholesale' %}
+          <div style="padding:14px 20px; border-top:1px solid var(--border-color);">
+            <p style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Decision Framework</p>
+            {% for label, passed in [
+              ('Cash Flow must be positive', outputs.get('passes_cash_flow', False)),
+              ('Cash on Cash Return must beat the bank', outputs.get('passes_coc', False)),
+              ('Deal Cap Rate must beat Market Cap Rate', outputs.get('passes_cap_rate', False)),
+            ] %}
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+              <i data-lucide="{{ 'check-circle' if passed else 'x-circle' }}"
+                 style="width:14px; height:14px; color:{{ 'var(--success)' if passed else 'var(--danger)' }};"></i>
+              <span style="font-size:12px; color:var(--text-secondary);">{{ label }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
 
           <!-- Deal Viability Indicator -->
           {% if outputs.get('is_deal_viable') is not none %}
@@ -748,14 +784,6 @@
 
 {% block extra_js %}
 <script>
-// Wholesale deal type toggle
-function toggleWholesaleType(type) {
-  const rehab = document.getElementById('rehabInputs');
-  const land = document.getElementById('landInputs');
-  if (rehab) rehab.style.display = type === 'land' ? 'none' : 'grid';
-  if (land) land.style.display = type === 'land' ? 'grid' : 'none';
-}
-
 // Construction exit strategy toggle
 function toggleExitStrategy(strategy) {
   const spec = document.getElementById('specBuildInputs');
@@ -780,25 +808,14 @@ function toggleExitStrategy(strategy) {
 const ctx = document.getElementById('waterfallChart');
 if (ctx) {
   {% if deal.strategy == 'wholesale' %}
-    {% if outputs.get('deal_type') == 'land' %}
-    const labels = ['ARV', 'Construction', 'Other Costs', 'MLV', 'MAO'];
-    const data = [
-      {{ inputs.get('arv', 0) }},
-      {{ inputs.get('construction_cost', 0) }},
-      {{ outputs.get('total_developer_costs', 0) - inputs.get('construction_cost', 0) }},
-      {{ outputs.get('maximum_land_value', 0) }},
-      {{ outputs.get('mao', 0) }}
-    ];
-    {% else %}
-    const labels = ['Purchase', 'Repairs', 'Assignment', 'ARV', 'MAO 70%'];
-    const data = [
-      {{ inputs.get('purchase_price', 0) }},
-      {{ inputs.get('repair_cost', 0) }},
-      {{ inputs.get('assignment_fee', 0) }},
-      {{ inputs.get('arv', 0) }},
-      {{ outputs.get('mao_70', 0) }}
-    ];
-    {% endif %}
+  const labels = ['Gross Income', 'Effective Income', 'Operating Exp.', 'NOI', 'Cash Flow'];
+  const data = [
+    {{ outputs.get('gross_rental_income', 0) }},
+    {{ outputs.get('effective_gross_income', 0) }},
+    {{ outputs.get('operating_expenses', 0) }},
+    {{ outputs.get('noi', 0) }},
+    {{ outputs.get('cash_flow', 0) }}
+  ];
   {% elif deal.strategy == 'fix_flip' %}
   const labels = ['Purchase', 'Rehab', 'Holding', 'Selling', 'Sale Price'];
   const data = [
@@ -809,13 +826,12 @@ if (ctx) {
     {{ inputs.get('arv', 0) }}
   ];
   {% elif deal.strategy == 'brrrr' %}
-  const labels = ['Purchase', 'Rehab', 'ARV', 'Refinance', 'Left In'];
+  const labels = ['Purchase+Rehab', 'Cash Invested', 'Refinance Loan', 'Cash Left In'];
   const data = [
-    {{ inputs.get('purchase_price', 0) }},
-    {{ inputs.get('rehab_cost', 0) }},
-    {{ inputs.get('arv', 0) }},
-    {{ outputs.get('refinance_amount', 0) }},
-    {{ outputs.get('capital_left_in', 0) }}
+    {{ inputs.get('purchase_price', 0) + inputs.get('rehab_cost', 0) }},
+    {{ outputs.get('initial_cash_invested', 0) }},
+    {{ outputs.get('refinance_loan_amount', 0) }},
+    {{ outputs.get('cash_left_in_deal', 0) }}
   ];
   {% elif deal.strategy == 'construction' %}
     {% if outputs.get('exit_strategy') == 'build_to_rent' %}
@@ -828,12 +844,12 @@ if (ctx) {
       {{ outputs.get('maximum_land_value', 0) }}
     ];
     {% else %}
-    const labels = ['ARV', 'Construction', 'Soft Costs', 'Other', 'MLV'];
+    const labels = ['ARV', 'Construction', 'Soft Costs', 'Holding', 'MAO/MLP'];
     const data = [
       {{ inputs.get('arv', 0) }},
       {{ inputs.get('construction_cost', 0) }},
       {{ inputs.get('soft_costs', 0) }},
-      {{ outputs.get('selling_costs', 0) }},
+      {{ inputs.get('holding_costs', 0) }},
       {{ outputs.get('maximum_land_value', 0) }}
     ];
     {% endif %}
