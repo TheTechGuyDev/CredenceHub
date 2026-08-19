@@ -76,11 +76,15 @@
             <!-- Formula Info Box -->
             <div style="background:rgba(15,45,94,0.06); border:1px solid rgba(15,45,94,0.15); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:16px;">
               <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;">CredenceHub — Multifamily Formula</p>
-              <p style="font-size:12px; color:var(--text-muted);">Cash Flow = NOI − Annual Debt Service</p>
-              <p style="font-size:12px; color:var(--text-muted);">Cash on Cash Return = Cash Flow ÷ Down Payment × 100%</p>
-              <p style="font-size:12px; color:var(--text-muted);">Deal Cap Rate = NOI ÷ Purchase Price × 100%</p>
+              <p style="font-size:12px; color:var(--text-muted);">Gross Rental Income = (Monthly Rent/Unit × Units × 12) + Ancillary Income</p>
+              <p style="font-size:12px; color:var(--text-muted);">Effective Gross Income = Gross Rental Income − Vacancy Factor</p>
+              <p style="font-size:12px; color:var(--text-muted);">NOI = EGI − Operating Expenses</p>
+              <p style="font-size:12px; color:var(--text-muted);">DSCR = NOI ÷ Annual Debt Service (lenders typically require 1.20x–1.25x)</p>
             </div>
 
+            <p style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin:0 0 12px;">
+              Property &amp; Financing
+            </p>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group">
                 <label class="form-label">Purchase Price ($)</label>
@@ -93,27 +97,102 @@
                        value="{{ inputs.get('down_payment', '') }}" placeholder="0" step="1000" />
               </div>
               <div class="form-group">
-                <label class="form-label">Gross Rental Income ($/yr)</label>
-                <input type="number" name="input_gross_rental_income" class="form-control calc-input"
-                       value="{{ inputs.get('gross_rental_income', '') }}" placeholder="0" step="1000" />
+                <label class="form-label">Interest Rate (%)</label>
+                <input type="number" name="input_interest_rate" class="form-control calc-input"
+                       value="{{ inputs.get('interest_rate', 6) }}" placeholder="6" step="0.25" />
               </div>
               <div class="form-group">
-                <label class="form-label">Vacancy & Credit Loss (%)</label>
-                <input type="number" name="input_vacancy_credit_loss_pct" class="form-control calc-input"
-                       value="{{ inputs.get('vacancy_credit_loss_pct', 5) }}" placeholder="5" step="0.5" />
-                <p class="form-text">Used to calculate Effective Gross Income</p>
+                <label class="form-label">Amortization Period (years)</label>
+                <input type="number" name="input_amortization_years" class="form-control calc-input"
+                       value="{{ inputs.get('amortization_years', 25) }}" placeholder="25" step="1" />
+              </div>
+            </div>
+
+            <p style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin:20px 0 12px;">
+              Gross Rental Income
+            </p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Monthly Rent per Unit ($)</label>
+                <input type="number" name="input_monthly_rent_per_unit" class="form-control calc-input"
+                       value="{{ inputs.get('monthly_rent_per_unit', '') }}" placeholder="0" step="25" />
               </div>
               <div class="form-group">
-                <label class="form-label">Operating Expenses ($/yr)</label>
-                <input type="number" name="input_operating_expenses" class="form-control calc-input"
-                       value="{{ inputs.get('operating_expenses', '') }}" placeholder="0" step="500" />
+                <label class="form-label">Total Units</label>
+                <input type="number" name="input_total_units" class="form-control calc-input"
+                       value="{{ inputs.get('total_units', '') }}" placeholder="0" step="1" />
               </div>
               <div class="form-group">
-                <label class="form-label">Annual Debt Service ($)</label>
-                <input type="number" name="input_annual_debt_service" class="form-control calc-input"
-                       value="{{ inputs.get('annual_debt_service', '') }}" placeholder="0" step="500" />
-                <p class="form-text">Total yearly mortgage payments</p>
+                <label class="form-label">Ancillary Income ($/yr)</label>
+                <input type="number" name="input_ancillary_income" class="form-control calc-input"
+                       value="{{ inputs.get('ancillary_income', 0) }}" placeholder="0" step="500" />
+                <p class="form-text">Laundry, vending, parking, storage, late fees</p>
               </div>
+              <div class="form-group">
+                <label class="form-label">Vacancy Factor (%)</label>
+                <input type="number" name="input_vacancy_factor_pct" class="form-control calc-input"
+                       value="{{ inputs.get('vacancy_factor_pct', 5) }}" placeholder="5" step="0.5" min="5" />
+                <p class="form-text">5% minimum is enforced regardless of what's entered</p>
+              </div>
+            </div>
+
+            <p style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin:20px 0 12px;">
+              Operating Expenses
+            </p>
+            <div class="form-group">
+              <label class="form-label">Calculation Method</label>
+              <select name="input_opex_mode" class="form-control calc-input" id="opexModeSelect" onchange="toggleOpexMode(this.value)">
+                <option value="quick" {% if inputs.get('opex_mode', 'quick') == 'quick' %}selected{% endif %}>Quick Screening (EGI × 35%)</option>
+                <option value="itemized" {% if inputs.get('opex_mode') == 'itemized' %}selected{% endif %}>Itemized (enter each expense)</option>
+              </select>
+            </div>
+
+            <div id="itemizedOpexInputs" style="display:{% if inputs.get('opex_mode') == 'itemized' %}grid{% else %}none{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Property Taxes ($/yr)</label>
+                <input type="number" name="input_property_taxes" class="form-control calc-input"
+                       value="{{ inputs.get('property_taxes', '') }}" placeholder="0" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Insurance ($/yr)</label>
+                <input type="number" name="input_insurance" class="form-control calc-input"
+                       value="{{ inputs.get('insurance', '') }}" placeholder="0" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Utilities ($/yr)</label>
+                <input type="number" name="input_utilities" class="form-control calc-input"
+                       value="{{ inputs.get('utilities', '') }}" placeholder="0" step="500" />
+                <p class="form-text">Water, trash, gas, common area electric</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Property Management ($/yr)</label>
+                <input type="number" name="input_property_management" class="form-control calc-input"
+                       value="{{ inputs.get('property_management', '') }}" placeholder="0" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Repairs & Maintenance ($/yr)</label>
+                <input type="number" name="input_repairs_maintenance" class="form-control calc-input"
+                       value="{{ inputs.get('repairs_maintenance', '') }}" placeholder="0" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Landscaping & Snow Removal ($/yr)</label>
+                <input type="number" name="input_landscaping" class="form-control calc-input"
+                       value="{{ inputs.get('landscaping', '') }}" placeholder="0" step="250" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Payroll / Admin ($/yr)</label>
+                <input type="number" name="input_payroll_admin" class="form-control calc-input"
+                       value="{{ inputs.get('payroll_admin', '') }}" placeholder="0" step="500" />
+              </div>
+            </div>
+            <p style="font-size:11px; color:var(--text-muted); margin-top:{% if inputs.get('opex_mode') == 'itemized' %}0{% else %}-8px{% endif %};">
+              Mortgage principal &amp; interest is never included here — it's debt service, tracked separately below.
+            </p>
+
+            <p style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin:20px 0 12px;">
+              Decision Framework Benchmarks
+            </p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group">
                 <label class="form-label">Bank Rate to Beat (%)</label>
                 <input type="number" name="input_bank_rate_pct" class="form-control calc-input"
@@ -594,9 +673,12 @@
             ('Cash Flow', outputs.get('cash_flow', 0), True, True),
             ('Cash on Cash Return', outputs.get('coc_return', 0), False, True),
             ('Deal Cap Rate', outputs.get('cap_rate', 0), False, True),
+            ('Gross Scheduled Rent', outputs.get('gross_scheduled_rent', 0), True, False),
             ('Gross Rental Income', outputs.get('gross_rental_income', 0), True, False),
             ('Effective Gross Income', outputs.get('effective_gross_income', 0), True, False),
             ('Operating Expenses', outputs.get('operating_expenses', 0), True, False),
+            ('Annual Loan Amount', outputs.get('loan_amount', 0), True, False),
+            ('Monthly Mortgage Payment', outputs.get('monthly_mortgage_payment', 0), True, False),
             ('Annual Debt Service', outputs.get('annual_debt_service', 0), True, False),
           ] %}
 
@@ -702,6 +784,16 @@
           </div>
           {% endfor %}
 
+          <!-- DSCR (ratio, not currency or percent — rendered separately) -->
+          {% if deal.strategy == 'wholesale' %}
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-bottom:1px solid var(--border-color); background:var(--bg-primary);">
+            <span style="font-size:13px; color:var(--text-secondary);">Debt Service Coverage Ratio (DSCR)</span>
+            <span style="font-size:14px; font-weight:700; color:{% if outputs.get('passes_dscr') %}var(--success){% else %}var(--danger){% endif %};">
+              {{ '{:.2f}'.format(outputs.get('dscr', 0)) }}x
+            </span>
+          </div>
+          {% endif %}
+
           <!-- Multifamily Decision Framework -->
           {% if deal.strategy == 'wholesale' %}
           <div style="padding:14px 20px; border-top:1px solid var(--border-color);">
@@ -710,6 +802,7 @@
               ('Cash Flow must be positive', outputs.get('passes_cash_flow', False)),
               ('Cash on Cash Return must beat the bank', outputs.get('passes_coc', False)),
               ('Deal Cap Rate must beat Market Cap Rate', outputs.get('passes_cap_rate', False)),
+              ('DSCR should be at least 1.20x', outputs.get('passes_dscr', False)),
             ] %}
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
               <i data-lucide="{{ 'check-circle' if passed else 'x-circle' }}"
@@ -784,6 +877,12 @@
 
 {% block extra_js %}
 <script>
+// Multifamily operating expense mode toggle
+function toggleOpexMode(mode) {
+  const itemized = document.getElementById('itemizedOpexInputs');
+  if (itemized) itemized.style.display = mode === 'itemized' ? 'grid' : 'none';
+}
+
 // Construction exit strategy toggle
 function toggleExitStrategy(strategy) {
   const spec = document.getElementById('specBuildInputs');

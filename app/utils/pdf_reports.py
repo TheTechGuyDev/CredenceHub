@@ -62,6 +62,17 @@ def _fmt_pct(value):
         return "0.00%"
 
 
+def _fmt_value(key, value, is_currency):
+    """DSCR is a ratio (e.g. 1.25x), not a currency amount or a percentage —
+    special-cased here so it doesn't render misleadingly as '1.25%'."""
+    if key == 'dscr':
+        try:
+            return f"{value:.2f}x"
+        except (TypeError, ValueError):
+            return "0.00x"
+    return _fmt_currency(value) if is_currency else _fmt_pct(value)
+
+
 def _footer(canvas, doc, report_type):
     canvas.saveState()
     canvas.setFont('Helvetica', 8)
@@ -367,8 +378,10 @@ RESULTS_BY_STRATEGY = {
     'wholesale': [
         ('Net Operating Income (NOI)', 'noi', True, True), ('Cash Flow', 'cash_flow', True, True),
         ('Cash on Cash Return', 'coc_return', False, True), ('Deal Cap Rate', 'cap_rate', False, True),
-        ('Gross Rental Income', 'gross_rental_income', True, False), ('Effective Gross Income', 'effective_gross_income', True, False),
-        ('Operating Expenses', 'operating_expenses', True, False), ('Annual Debt Service', 'annual_debt_service', True, False),
+        ('Gross Scheduled Rent', 'gross_scheduled_rent', True, False), ('Gross Rental Income', 'gross_rental_income', True, False),
+        ('Effective Gross Income', 'effective_gross_income', True, False), ('Operating Expenses', 'operating_expenses', True, False),
+        ('Monthly Mortgage Payment', 'monthly_mortgage_payment', True, False), ('Annual Debt Service', 'annual_debt_service', True, False),
+        ('Debt Service Coverage Ratio (DSCR)', 'dscr', False, True),
     ],
 }
 
@@ -421,7 +434,7 @@ def generate_deal_pdf(deal, inputs, outputs, prepared_by=None):
     for label, key in kpi_source:
         value = outputs.get(key, 0)
         is_currency = next((c for l, k, c, h in results if k == key), True)
-        kpi_items.append((label, _fmt_currency(value) if is_currency else _fmt_pct(value)))
+        kpi_items.append((label, _fmt_value(key, value, is_currency)))
     if kpi_items:
         elements.append(Paragraph('Key Metrics', style_section))
         elements.append(_kpi_row(kpi_items))
@@ -456,7 +469,7 @@ def generate_deal_pdf(deal, inputs, outputs, prepared_by=None):
     result_rows = [['Item', 'Amount']]
     for label, key, is_currency, is_highlight in results:
         value = outputs.get(key, 0)
-        result_rows.append([label, _fmt_currency(value) if is_currency else _fmt_pct(value)])
+        result_rows.append([label, _fmt_value(key, value, is_currency)])
     result_table = Table(result_rows, colWidths=[3.5 * inch, 3.4 * inch])
     row_styles = [
         ('BACKGROUND', (0, 0), (-1, 0), NAVY),

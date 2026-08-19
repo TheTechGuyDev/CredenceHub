@@ -31,10 +31,29 @@ def calculate_deal(strategy, inputs):
 # Uses industry-standard MAO methodology
 def calculate_wholesale(inputs):
     """
-    CredenceHub Multifamily Formula (per client specification)
+    CredenceHub Multifamily Formula (per client specification, v2)
 
-    Requires 5 Key Numbers: Gross Rental Income, Effective Gross Income,
-    Operating Expenses, Net Operating Income (NOI), Annual Debt Service.
+    Gross Scheduled Rent  = (Monthly Rent per Unit x Total Units) x 12
+    Gross Rental Income   = Gross Scheduled Rent + Ancillary Income
+    Effective Gross Income (EGI) = Gross Rental Income - Vacancy Factor (floor: 5%)
+
+    Operating Expenses — two modes:
+      Quick Screening: EGI x 35%
+      Itemized: Property Taxes + Insurance + Utilities + Property Management
+                + Repairs & Maintenance + Landscaping + Payroll/Admin
+      (Mortgage principal & interest is explicitly excluded — it's debt
+      service, not an operating expense.)
+
+    Net Operating Income (NOI) = EGI - Total Operating Expenses
+
+    Annual Debt Service (ADS) = Monthly Mortgage Payment (P&I) x 12
+      Monthly Mortgage Payment: P = L x [c(1+c)^n / ((1+c)^n - 1)]
+        L = Purchase Price - Down Payment
+        c = Annual Interest Rate / 12
+        n = Amortization Years x 12
+
+    Debt Service Coverage Ratio (DSCR) = NOI / Annual Debt Service
+      (Most lenders require a minimum of 1.20x-1.25x)
 
     Cash Flow            = NOI - Annual Debt Service
     Cash on Cash Return  = Cash Flow / Down Payment x 100%
@@ -47,16 +66,61 @@ def calculate_wholesale(inputs):
     """
     purchase_price = safe_float(inputs.get('purchase_price'))
     down_payment = safe_float(inputs.get('down_payment'))
-    gross_rental_income = safe_float(inputs.get('gross_rental_income'))
-    vacancy_credit_loss_pct = safe_float(inputs.get('vacancy_credit_loss_pct'), 5)
-    operating_expenses = safe_float(inputs.get('operating_expenses'))
-    annual_debt_service = safe_float(inputs.get('annual_debt_service'))
-    bank_rate_pct = safe_float(inputs.get('bank_rate_pct'), 5)
-    market_cap_rate_pct = safe_float(inputs.get('market_cap_rate_pct'), 6)
 
-    # 5 Key Numbers
-    effective_gross_income = gross_rental_income * (1 - vacancy_credit_loss_pct / 100)
-    noi = effective_gross_income - operating_expenses
+    # Gross Rental Income
+    monthly_rent_per_unit = safe_float(inputs.get('monthly_rent_per_unit'))
+    total_units = safe_float(inputs.get('total_units'), 1)
+    ancillary_income = safe_float(inputs.get('ancillary_income'))
+
+    gross_scheduled_rent = (monthly_rent_per_unit * total_units) * 12
+    gross_rental_income = gross_scheduled_rent + ancillary_income
+
+    # Effective Gross Income — vacancy factor has an enforced 5% floor
+    vacancy_factor_pct_input = safe_float(inputs.get('vacancy_factor_pct'), 5)
+    vacancy_factor_pct = max(vacancy_factor_pct_input, 5)
+    effective_gross_income = gross_rental_income - (gross_rental_income * vacancy_factor_pct / 100)
+
+    # Operating Expenses — Quick Screening vs Itemized
+    opex_mode = inputs.get('opex_mode', 'quick')
+    if opex_mode == 'itemized':
+        property_taxes = safe_float(inputs.get('property_taxes'))
+        insurance = safe_float(inputs.get('insurance'))
+        utilities = safe_float(inputs.get('utilities'))
+        property_management = safe_float(inputs.get('property_management'))
+        repairs_maintenance = safe_float(inputs.get('repairs_maintenance'))
+        landscaping = safe_float(inputs.get('landscaping'))
+        payroll_admin = safe_float(inputs.get('payroll_admin'))
+        total_operating_expenses = (
+            property_taxes + insurance + utilities + property_management
+            + repairs_maintenance + landscaping + payroll_admin
+        )
+    else:
+        total_operating_expenses = effective_gross_income * 0.35
+
+    # Net Operating Income
+    noi = effective_gross_income - total_operating_expenses
+
+    # Annual Debt Service — standard commercial loan amortization
+    interest_rate = safe_float(inputs.get('interest_rate'), 6)
+    amortization_years = safe_float(inputs.get('amortization_years'), 25)
+
+    loan_amount = purchase_price - down_payment
+    monthly_rate = interest_rate / 100 / 12
+    n_payments = amortization_years * 12
+
+    if monthly_rate > 0 and n_payments > 0:
+        monthly_mortgage_payment = loan_amount * (
+            monthly_rate * (1 + monthly_rate) ** n_payments
+        ) / ((1 + monthly_rate) ** n_payments - 1)
+    elif n_payments > 0:
+        monthly_mortgage_payment = loan_amount / n_payments
+    else:
+        monthly_mortgage_payment = 0
+
+    annual_debt_service = monthly_mortgage_payment * 12
+
+    # Debt Service Coverage Ratio
+    dscr = (noi / annual_debt_service) if annual_debt_service > 0 else 0
 
     # Core formulas
     cash_flow = noi - annual_debt_service
@@ -64,17 +128,28 @@ def calculate_wholesale(inputs):
     cap_rate = (noi / purchase_price * 100) if purchase_price > 0 else 0
 
     # Decision Framework
+    bank_rate_pct = safe_float(inputs.get('bank_rate_pct'), 5)
+    market_cap_rate_pct = safe_float(inputs.get('market_cap_rate_pct'), 6)
     passes_cash_flow = cash_flow > 0
     passes_coc = coc_return > bank_rate_pct
     passes_cap_rate = cap_rate > market_cap_rate_pct
+    passes_dscr = dscr >= 1.20
     deal_score = sum([passes_cash_flow, passes_coc, passes_cap_rate])
 
     return {
+        'gross_scheduled_rent': round(gross_scheduled_rent, 2),
+        'ancillary_income': round(ancillary_income, 2),
         'gross_rental_income': round(gross_rental_income, 2),
+        'vacancy_factor_pct': round(vacancy_factor_pct, 2),
         'effective_gross_income': round(effective_gross_income, 2),
-        'operating_expenses': round(operating_expenses, 2),
+        'opex_mode': opex_mode,
+        'operating_expenses': round(total_operating_expenses, 2),
         'noi': round(noi, 2),
+        'loan_amount': round(loan_amount, 2),
+        'monthly_mortgage_payment': round(monthly_mortgage_payment, 2),
         'annual_debt_service': round(annual_debt_service, 2),
+        'dscr': round(dscr, 2),
+        'passes_dscr': passes_dscr,
         'cash_flow': round(cash_flow, 2),
         'coc_return': round(coc_return, 2),
         'cap_rate': round(cap_rate, 2),
