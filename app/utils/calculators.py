@@ -318,9 +318,12 @@ def calculate_brrrr(inputs):
 # Spec Build + Build to Rent analysis
 def calculate_construction(inputs):
     exit_strategy = inputs.get('exit_strategy', 'spec_build')
+    calculation_method = inputs.get('calculation_method', 'standard')
 
     if exit_strategy == 'build_to_rent':
         return _calculate_build_to_rent(inputs)
+    elif calculation_method == 'land_feasibility':
+        return _calculate_land_feasibility(inputs)
     else:
         return _calculate_spec_build(inputs)
 
@@ -433,6 +436,62 @@ def _calculate_spec_build(inputs):
         'cost_per_sqft': round(cost_per_sqft, 2),
         'total_cost': round(total_cost, 2),
         'is_deal_viable': maximum_land_value > 0,
+    }
+
+
+def _calculate_land_feasibility(inputs):
+    """
+    CredenceHub Land Feasibility Formula (per client specification)
+
+    Handles Canadian GST/HST on new-construction residential sales by
+    stripping the tax component out of the gross sale price before running
+    the MAO calculation.
+
+    Net GRV = Gross Realized Sales Value / (1 + Applicable GST or HST %)
+
+    Land MAO = Net GRV - Hard Costs - Soft Costs & Levies - Carrying Costs
+               - Selling Costs - Target Profit
+    """
+    gross_realized_sales_value = safe_float(inputs.get('gross_realized_sales_value'))
+    gst_hst_pct = safe_float(inputs.get('gst_hst_pct'), 5) / 100
+    hard_costs = safe_float(inputs.get('hard_costs'))
+    soft_costs_levies = safe_float(inputs.get('soft_costs_levies'))
+    carrying_costs = safe_float(inputs.get('carrying_costs'))
+    selling_costs = safe_float(inputs.get('selling_costs'))
+    target_profit = safe_float(inputs.get('target_profit'))
+    assignment_fee = safe_float(inputs.get('assignment_fee'), 0)
+    floor_area = safe_float(inputs.get('floor_area'), 1)
+
+    # Net GRV — tax stripped out
+    net_grv = gross_realized_sales_value / (1 + gst_hst_pct) if (1 + gst_hst_pct) != 0 else 0
+
+    total_costs = hard_costs + soft_costs_levies + carrying_costs + selling_costs
+    land_mao = net_grv - total_costs - target_profit
+
+    # If developer/wholesaler is buying/assigning the land directly
+    land_cost = safe_float(inputs.get('land_cost'), 0)
+    total_project_cost = land_cost + total_costs
+    actual_profit = net_grv - total_project_cost
+    actual_profit_pct = (actual_profit / net_grv * 100) if net_grv > 0 else 0
+    cost_per_sqft = total_project_cost / floor_area if floor_area > 0 else 0
+
+    mao = land_mao - assignment_fee
+
+    return {
+        'exit_strategy': 'spec_build',
+        'calculation_method': 'land_feasibility',
+        'gross_realized_sales_value': round(gross_realized_sales_value, 2),
+        'gst_hst_pct': round(gst_hst_pct * 100, 2),
+        'net_grv': round(net_grv, 2),
+        'maximum_land_value': round(max(land_mao, 0), 2),
+        'mao': round(max(mao, 0), 2),
+        'total_costs': round(total_costs, 2),
+        'target_profit': round(target_profit, 2),
+        'actual_profit': round(actual_profit, 2),
+        'actual_profit_pct': round(actual_profit_pct, 2),
+        'total_cost': round(total_project_cost, 2),
+        'cost_per_sqft': round(cost_per_sqft, 2),
+        'is_deal_viable': land_mao > 0,
     }
 
 

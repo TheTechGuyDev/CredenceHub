@@ -334,6 +334,11 @@ LABEL_OVERRIDES = {
     'refinance_closing_costs': 'Refinance Closing Costs', 'closing_costs': 'Closing Costs',
     'target_net_profit': 'Target Net Profit', 'total_net_profit': 'Total Net Profit',
     'total_project_cost': 'Total Project Cost',
+    'gross_realized_sales_value': 'Gross Realized Sales Value', 'gst_hst_pct': 'GST/HST %',
+    'net_grv': 'Net GRV (Tax-Stripped)', 'hard_costs': 'Hard Costs',
+    'soft_costs_levies': 'Soft Costs & Levies', 'carrying_costs': 'Carrying Costs',
+    'target_profit': 'Target Profit', 'actual_profit': 'Actual Profit',
+    'calculation_method': 'Calculation Method',
 }
 
 RESULTS_BY_STRATEGY = {
@@ -394,6 +399,15 @@ def _results_for_strategy(strategy, outputs):
             ('Built-In Equity', 'built_in_equity', True, True), ('Equity Position', 'equity_pct', False, False),
             ('Cap Rate', 'cap_rate', False, False), ('Gross Yield', 'gross_yield', False, False),
             ('Monthly Cash Flow Est.', 'monthly_cashflow_estimate', True, False), ('Cost Per Sq Ft', 'cost_per_sqft', True, False),
+        ]
+    if strategy == 'construction' and outputs.get('calculation_method') == 'land_feasibility':
+        return [
+            ('Land MAO / MLP', 'maximum_land_value', True, True), ('MAO After Assignment Fee', 'mao', True, True),
+            ('Net GRV (Tax-Stripped)', 'net_grv', True, False), ('Gross Realized Sales Value', 'gross_realized_sales_value', True, False),
+            ('GST/HST Applied', 'gst_hst_pct', False, False), ('Target Profit', 'target_profit', True, False),
+            ('Actual Profit', 'actual_profit', True, True), ('Actual Profit %', 'actual_profit_pct', False, False),
+            ('Total Costs', 'total_costs', True, False), ('Total Project Cost', 'total_cost', True, False),
+            ('Cost Per Sq Ft', 'cost_per_sqft', True, False),
         ]
     return RESULTS_BY_STRATEGY.get(strategy, [])
 

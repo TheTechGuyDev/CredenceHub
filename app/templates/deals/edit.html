@@ -384,14 +384,28 @@
               </select>
             </div>
 
+            <!-- Calculation Method Toggle (Spec Build only) -->
+            <div class="form-group" id="calcMethodGroup" style="display:{% if inputs.get('exit_strategy') == 'build_to_rent' %}none{% else %}block{% endif %};">
+              <label class="form-label">Calculation Method</label>
+              <select name="input_calculation_method" class="form-control" id="calcMethodSelect" onchange="toggleCalculationMethod(this.value)">
+                <option value="standard" {% if inputs.get('calculation_method') != 'land_feasibility' %}selected{% endif %}>Standard — ARV &amp; Profit Margin</option>
+                <option value="land_feasibility" {% if inputs.get('calculation_method') == 'land_feasibility' %}selected{% endif %}>Land Feasibility — Canada Tax-Adjusted (GST/HST)</option>
+              </select>
+            </div>
+
             <!-- Formula Info Box -->
             <div style="background:rgba(15,45,94,0.06); border:1px solid rgba(15,45,94,0.15); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:16px;">
               <p style="font-size:12px; font-weight:600; color:var(--navy); margin-bottom:4px;" id="formulaLabel">
-                {% if inputs.get('exit_strategy') == 'build_to_rent' %}CredenceHub — Build to Rent Formula{% else %}CredenceHub — Land Development Formula{% endif %}
+                {% if inputs.get('exit_strategy') == 'build_to_rent' %}CredenceHub — Build to Rent Formula
+                {% elif inputs.get('calculation_method') == 'land_feasibility' %}CredenceHub — Land Feasibility Formula
+                {% else %}CredenceHub — Land Development Formula{% endif %}
               </p>
               <p style="font-size:12px; color:var(--text-muted);" id="formulaText">
                 {% if inputs.get('exit_strategy') == 'build_to_rent' %}
                   MLV = (NOI ÷ Cap Rate × (1 − Equity Margin)) − Construction − Soft − Holding − Financing Costs
+                {% elif inputs.get('calculation_method') == 'land_feasibility' %}
+                  Net GRV = Gross Realized Sales Value ÷ (1 + GST/HST %)<br/>
+                  Land MAO = Net GRV − Hard Costs − Soft Costs &amp; Levies − Carrying Costs − Selling Costs − Target Profit
                 {% else %}
                   MAO / MLP = ARV × (1 − Net Profit Margin %) − Construction Costs − Soft Costs − Holding Costs
                 {% endif %}
@@ -399,7 +413,10 @@
             </div>
 
             <!-- Spec Build Inputs -->
-            <div id="specBuildInputs" style="display:{% if inputs.get('exit_strategy') == 'build_to_rent' %}none{% else %}grid{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
+            <div id="specBuildInputs" style="display:{% if inputs.get('exit_strategy') == 'build_to_rent' %}none{% else %}block{% endif %};">
+
+            <!-- Standard Method Fields -->
+            <div id="standardMethodInputs" style="display:{% if inputs.get('calculation_method') == 'land_feasibility' %}none{% else %}grid{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
               <div class="form-group">
                 <label class="form-label">ARV / Gross End Value ($)</label>
                 <input type="number" name="input_arv" class="form-control calc-input"
@@ -429,6 +446,53 @@
                        value="{{ inputs.get('holding_costs', '') }}" placeholder="5000" step="500" />
                 <p class="form-text">Taxes, insurance, loan interest, utilities during development</p>
               </div>
+            </div>
+
+            <!-- Land Feasibility Method Fields -->
+            <div id="landFeasibilityInputs" style="display:{% if inputs.get('calculation_method') == 'land_feasibility' %}grid{% else %}none{% endif %}; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Gross Realized Sales Value ($)</label>
+                <input type="number" name="input_gross_realized_sales_value" class="form-control calc-input"
+                       value="{{ inputs.get('gross_realized_sales_value', '') }}" placeholder="400000" step="5000" />
+                <p class="form-text">Total projected sale price, tax-inclusive</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">GST / HST (%)</label>
+                <input type="number" name="input_gst_hst_pct" class="form-control calc-input"
+                       value="{{ inputs.get('gst_hst_pct', 5) }}" placeholder="5" step="0.5" />
+                <p class="form-text">5% GST, or 13–15% HST depending on province</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Hard Costs ($)</label>
+                <input type="number" name="input_hard_costs" class="form-control calc-input"
+                       value="{{ inputs.get('hard_costs', '') }}" placeholder="200000" step="5000" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Soft Costs & Levies ($)</label>
+                <input type="number" name="input_soft_costs_levies" class="form-control calc-input"
+                       value="{{ inputs.get('soft_costs_levies', '') }}" placeholder="10000" step="1000" />
+                <p class="form-text">Design, engineering, permits, development levies</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Carrying Costs ($)</label>
+                <input type="number" name="input_carrying_costs" class="form-control calc-input"
+                       value="{{ inputs.get('carrying_costs', '') }}" placeholder="5000" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Selling Costs ($)</label>
+                <input type="number" name="input_selling_costs" class="form-control calc-input"
+                       value="{{ inputs.get('selling_costs', '') }}" placeholder="15000" step="500" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Target Profit ($)</label>
+                <input type="number" name="input_target_profit" class="form-control calc-input"
+                       value="{{ inputs.get('target_profit', '') }}" placeholder="80000" step="5000" />
+                <p class="form-text">Deducted directly as a dollar figure, not a margin %</p>
+              </div>
+            </div>
+
+            <!-- Shared fields for both calculation methods -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
               <div class="form-group">
                 <label class="form-label">Land Cost ($) — if known</label>
                 <input type="number" name="input_land_cost" class="form-control calc-input"
@@ -445,11 +509,12 @@
                 <input type="number" name="input_floor_area" class="form-control calc-input"
                        value="{{ inputs.get('floor_area', '') }}" placeholder="2000" step="100" />
               </div>
-              <div class="form-group">
+              <div class="form-group" id="contingencyField" style="display:{% if inputs.get('calculation_method') == 'land_feasibility' %}none{% else %}block{% endif %};">
                 <label class="form-label">Contingency (%)</label>
                 <input type="number" name="input_contingency_pct" class="form-control calc-input"
                        value="{{ inputs.get('contingency_pct', 0) }}" placeholder="0" step="1" />
               </div>
+            </div>
             </div>
 
             <!-- Build to Rent Inputs -->
@@ -727,6 +792,20 @@
               ('Monthly Cash Flow Est.', outputs.get('monthly_cashflow_estimate', 0), True, False),
               ('Cost Per Sq Ft', outputs.get('cost_per_sqft', 0), True, False),
             ] %}
+            {% elif outputs.get('calculation_method') == 'land_feasibility' %}
+            {% set items = [
+              ('Land MAO / MLP', outputs.get('maximum_land_value', 0), True, True),
+              ('MAO After Assignment Fee', outputs.get('mao', 0), True, True),
+              ('Net GRV (Tax-Stripped)', outputs.get('net_grv', 0), True, False),
+              ('Gross Realized Sales Value', outputs.get('gross_realized_sales_value', 0), True, False),
+              ('GST/HST Applied', outputs.get('gst_hst_pct', 0), False, False),
+              ('Target Profit', outputs.get('target_profit', 0), True, False),
+              ('Actual Profit', outputs.get('actual_profit', 0), True, True),
+              ('Actual Profit %', outputs.get('actual_profit_pct', 0), False, False),
+              ('Total Costs', outputs.get('total_costs', 0), True, False),
+              ('Total Project Cost', outputs.get('total_cost', 0), True, False),
+              ('Cost Per Sq Ft', outputs.get('cost_per_sqft', 0), True, False),
+            ] %}
             {% else %}
             {% set items = [
               ('Max Allowable Offer / Max Land Price', outputs.get('maximum_land_value', 0), True, True),
@@ -887,18 +966,43 @@ function toggleOpexMode(mode) {
 function toggleExitStrategy(strategy) {
   const spec = document.getElementById('specBuildInputs');
   const rent = document.getElementById('buildToRentInputs');
+  const calcGroup = document.getElementById('calcMethodGroup');
+
+  if (spec) spec.style.display = strategy === 'build_to_rent' ? 'none' : 'block';
+  if (rent) rent.style.display = strategy === 'build_to_rent' ? 'grid' : 'none';
+  if (calcGroup) calcGroup.style.display = strategy === 'build_to_rent' ? 'none' : 'block';
+
+  updateLandDevelopmentFormula();
+}
+
+// Land Development calculation method toggle (Standard vs Land Feasibility)
+function toggleCalculationMethod(method) {
+  const standard = document.getElementById('standardMethodInputs');
+  const feasibility = document.getElementById('landFeasibilityInputs');
+  const contingency = document.getElementById('contingencyField');
+
+  if (standard) standard.style.display = method === 'land_feasibility' ? 'none' : 'grid';
+  if (feasibility) feasibility.style.display = method === 'land_feasibility' ? 'grid' : 'none';
+  if (contingency) contingency.style.display = method === 'land_feasibility' ? 'none' : 'block';
+
+  updateLandDevelopmentFormula();
+}
+
+function updateLandDevelopmentFormula() {
   const label = document.getElementById('formulaLabel');
   const text = document.getElementById('formulaText');
+  const exitStrategy = document.getElementById('exitStrategySelect')?.value || 'spec_build';
+  const calcMethod = document.getElementById('calcMethodSelect')?.value || 'standard';
 
-  if (spec) spec.style.display = strategy === 'build_to_rent' ? 'none' : 'grid';
-  if (rent) rent.style.display = strategy === 'build_to_rent' ? 'grid' : 'none';
-
-  if (strategy === 'build_to_rent') {
+  if (exitStrategy === 'build_to_rent') {
     if (label) label.textContent = 'CredenceHub — Build to Rent Formula';
-    if (text) text.textContent = 'MLV = (NOI ÷ Cap Rate × (1 − Equity Margin)) − Construction − Soft − Holding − Financing Costs';
+    if (text) text.innerHTML = 'MLV = (NOI ÷ Cap Rate × (1 − Equity Margin)) − Construction − Soft − Holding − Financing Costs';
+  } else if (calcMethod === 'land_feasibility') {
+    if (label) label.textContent = 'CredenceHub — Land Feasibility Formula';
+    if (text) text.innerHTML = 'Net GRV = Gross Realized Sales Value ÷ (1 + GST/HST %)<br/>Land MAO = Net GRV − Hard Costs − Soft Costs &amp; Levies − Carrying Costs − Selling Costs − Target Profit';
   } else {
-    if (label) label.textContent = 'CredenceHub — Spec Build Formula';
-    if (text) text.textContent = 'MLV = (ARV × (1 − Profit Margin)) − Construction − Soft − Holding − Financing − Selling Costs';
+    if (label) label.textContent = 'CredenceHub — Land Development Formula';
+    if (text) text.innerHTML = 'MAO / MLP = ARV × (1 − Net Profit Margin %) − Construction Costs − Soft Costs − Holding Costs';
   }
 }
 
@@ -940,6 +1044,15 @@ if (ctx) {
       {{ inputs.get('annual_operating_expenses', 0) }},
       {{ outputs.get('noi', 0) }},
       {{ outputs.get('as_built_value', 0) }},
+      {{ outputs.get('maximum_land_value', 0) }}
+    ];
+    {% elif outputs.get('calculation_method') == 'land_feasibility' %}
+    const labels = ['Gross Sales Value', 'Net GRV', 'Total Costs', 'Target Profit', 'Land MAO'];
+    const data = [
+      {{ outputs.get('gross_realized_sales_value', 0) }},
+      {{ outputs.get('net_grv', 0) }},
+      {{ outputs.get('total_costs', 0) }},
+      {{ outputs.get('target_profit', 0) }},
       {{ outputs.get('maximum_land_value', 0) }}
     ];
     {% else %}
