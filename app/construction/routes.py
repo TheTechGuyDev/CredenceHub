@@ -6,6 +6,7 @@ from app import db
 from app.construction import construction
 from app.models import ConstructionProject, BOMItem, PermitItem, CityData, ConstructionAuditLog
 from app.utils.pdf_reports import generate_construction_pdf
+from app.utils.email_utils import send_report_email
 
 
 def log_audit(project_id, user_id, action, details=None):
@@ -334,6 +335,52 @@ def export_pdf(project_id):
         as_attachment=True,
         download_name=filename
     )
+
+
+@construction.route('/<int:project_id>/email-report', methods=['POST'])
+@login_required
+def email_report(project_id):
+    project = ConstructionProject.query.filter_by(
+        id=project_id, user_id=current_user.id
+    ).first_or_404()
+
+    data = request.get_json(silent=True) or {}
+    recipient_email = (data.get('recipient_email') or '').strip()
+    personal_message = (data.get('message') or '').strip()
+
+    if not recipient_email or '@' not in recipient_email:
+        return jsonify({'success': False, 'error': 'Please enter a valid email address.'}), 400
+
+    city_data = get_city_data(project.city, project.province_state)
+    summary = get_cost_summary(project, city_data)
+    pdf_buffer = generate_construction_pdf(project, summary)
+    filename = f"{project.name.replace(' ', '_')}_Construction_Cost_Report.pdf"
+
+    sender_name = current_user.profile.full_name() if current_user.profile else current_user.email
+
+    body_lines = [
+        f"{sender_name} shared a Construction Cost report for <strong>{project.name}</strong> "
+        f"({project.city}, {project.province_state}) with you.",
+        f"Total Project Cost: <strong>${summary['grand_total']:,.0f}</strong> "
+        f"(${summary['cost_per_sqft']:,.0f}/sqft)",
+    ]
+    if personal_message:
+        body_lines.append(f'"{personal_message}"')
+    body_lines.append("The full report is attached as a PDF.")
+
+    success, error = send_report_email(
+        recipient=recipient_email,
+        subject=f"Construction Cost Report — {project.name}",
+        heading="Construction Cost Report",
+        body_lines=body_lines,
+        pdf_buffer=pdf_buffer,
+        pdf_filename=filename,
+        sender_name=sender_name,
+    )
+
+    if success:
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'Could not send the email. Please try again shortly.'}), 500
 
 
 @construction.route('/<int:project_id>/update-bom', methods=['POST'])

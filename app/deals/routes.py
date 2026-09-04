@@ -6,6 +6,7 @@ from app.deals import deals
 from app.models import Deal, DealScenario, ActivityLog
 from app.utils.calculators import calculate_deal
 from app.utils.pdf_reports import generate_deal_pdf
+from app.utils.email_utils import send_report_email
 
 
 def log_activity(user_id, action, entity_type=None, entity_id=None, entity_name=None):
@@ -126,6 +127,56 @@ def export_pdf(deal_id):
         as_attachment=True,
         download_name=filename
     )
+
+
+@deals.route('/<int:deal_id>/email-report', methods=['POST'])
+@login_required
+def email_report(deal_id):
+    deal = Deal.query.filter_by(id=deal_id, user_id=current_user.id).first_or_404()
+    inputs = json.loads(deal.inputs or '{}')
+    outputs = json.loads(deal.outputs or '{}')
+
+    data = request.get_json(silent=True) or {}
+    recipient_email = (data.get('recipient_email') or '').strip()
+    personal_message = (data.get('message') or '').strip()
+
+    if not recipient_email or '@' not in recipient_email:
+        return jsonify({'success': False, 'error': 'Please enter a valid email address.'}), 400
+
+    prepared_by = None
+    if current_user.profile and current_user.profile.company_name:
+        prepared_by = current_user.profile.company_name
+
+    pdf_buffer = generate_deal_pdf(deal, inputs, outputs, prepared_by=prepared_by)
+    filename = f"{deal.name.replace(' ', '_')}_{deal.strategy}_Analysis.pdf"
+
+    strategy_label = {
+        'wholesale': 'Multifamily', 'fix_flip': 'Fix & Flip', 'brrrr': 'BRRRR',
+        'construction': 'Land Development', 'commercial': 'Commercial', 'infill': 'New Construction',
+    }.get(deal.strategy, deal.strategy.replace('_', ' ').title())
+
+    sender_name = current_user.profile.full_name() if current_user.profile else current_user.email
+
+    body_lines = [
+        f"{sender_name} shared a {strategy_label} analysis for <strong>{deal.name}</strong> with you.",
+    ]
+    if personal_message:
+        body_lines.append(f'"{personal_message}"')
+    body_lines.append("The full analysis is attached as a PDF.")
+
+    success, error = send_report_email(
+        recipient=recipient_email,
+        subject=f"{strategy_label} Analysis — {deal.name}",
+        heading=f"{strategy_label} Analysis",
+        body_lines=body_lines,
+        pdf_buffer=pdf_buffer,
+        pdf_filename=filename,
+        sender_name=sender_name,
+    )
+
+    if success:
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'Could not send the email. Please try again shortly.'}), 500
 
 
 @deals.route('/<int:deal_id>/edit', methods=['GET', 'POST'])

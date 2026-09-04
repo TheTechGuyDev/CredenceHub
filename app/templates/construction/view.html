@@ -24,6 +24,10 @@
       <i data-lucide="file-down" style="width:14px; height:14px;"></i>
       Export
     </a>
+    <button class="btn btn-outline btn-sm" onclick="openModal('emailReportModal')">
+      <i data-lucide="mail" style="width:14px; height:14px;"></i>
+      Email
+    </button>
     <button class="btn btn-primary btn-sm" onclick="window.print()">
       <i data-lucide="printer" style="width:14px; height:14px;"></i>
       Print Report
@@ -448,6 +452,39 @@
   </div>
 </div>
 
+<!-- Email Report Modal -->
+<div class="modal-overlay" id="emailReportModal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <span class="modal-title">Email This Report</span>
+      <button class="modal-close" onclick="closeModal('emailReportModal')">
+        <i data-lucide="x" style="width:18px; height:18px;"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px; color:var(--text-muted); margin-bottom:16px;">
+        Sends the full Construction Cost Report as a PDF attachment.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Recipient Email</label>
+        <input type="email" id="emailReportRecipient" class="form-control"
+               value="{{ current_user.email }}" placeholder="name@example.com" />
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Message (optional)</label>
+        <textarea id="emailReportMessage" class="form-control" rows="3" placeholder="Add a note..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('emailReportModal')">Cancel</button>
+      <button class="btn btn-primary" id="emailReportSendBtn" onclick="sendReportEmail()">
+        <i data-lucide="send" style="width:15px; height:15px;"></i>
+        Send
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -549,6 +586,44 @@ function copyModalLink() {
   navigator.clipboard.writeText(input.value).then(function() {
     showToast('Link copied to clipboard!', 'success');
     closeModal('shareModal');
+  });
+}
+
+function sendReportEmail() {
+  const recipient = document.getElementById('emailReportRecipient').value.trim();
+  const message = document.getElementById('emailReportMessage').value.trim();
+  const btn = document.getElementById('emailReportSendBtn');
+
+  if (!recipient || !recipient.includes('@')) {
+    showToast('Please enter a valid email address.', 'danger');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = 'Sending...';
+
+  fetch('{{ url_for("construction.email_report", project_id=project.id) }}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recipient_email: recipient, message: message })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="send" style="width:15px; height:15px;"></i> Send';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    if (data.success) {
+      showToast('Report sent to ' + recipient, 'success');
+      closeModal('emailReportModal');
+    } else {
+      showToast(data.error || 'Could not send the email.', 'danger');
+    }
+  })
+  .catch(function() {
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="send" style="width:15px; height:15px;"></i> Send';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    showToast('Could not send the email. Please try again.', 'danger');
   });
 }
 
