@@ -248,7 +248,8 @@
 
       <!-- Category Items -->
       <div id="cat-{{ loop.index }}">
-        <table style="width:100%; border-collapse:collapse;">
+        <div class="table-wrapper">
+        <table style="width:100%; border-collapse:collapse; min-width:600px;">
           <thead>
             <tr style="background:var(--bg-secondary);">
               <th style="padding:8px 20px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);">Item</th>
@@ -302,6 +303,7 @@
             </tr>
           </tfoot>
         </table>
+        </div>
       </div>
     </div>
     {% endfor %}
